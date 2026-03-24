@@ -1,0 +1,64 @@
+version: '3.8'
+
+services:
+  lunar-lander-kto:
+    build:
+      context: ../..  # Build from repo root
+      dockerfile: demo/interactive/Dockerfile
+    image: lunar-lander-kto:latest
+    container_name: lunar-lander-kto
+
+    # X11 forwarding for pygame display
+    environment:
+      - DISPLAY=${DISPLAY:-host.docker.internal:0}
+      - QT_X11_NO_MITSHM=1
+
+    # Mount code for development
+    volumes:
+      - ../../:/app
+      - ./recorded_episodes:/app/demo/interactive/recorded_episodes
+
+    # Network mode for X11 (Linux/macOS)
+    network_mode: host
+
+    # For GPU support (optional, uncomment if needed)
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: 1
+    #           capabilities: [gpu]
+
+    # Keep container running
+    stdin_open: true
+    tty: true
+
+    working_dir: /app/demo/interactive
+
+    command: python play.py
+
+# For Windows users (network_mode: host doesn't work on Windows)
+# Use this alternative service instead:
+  lunar-lander-kto-windows:
+    profiles: ["windows"]
+    build:
+      context: ../..
+      dockerfile: demo/interactive/Dockerfile
+    image: lunar-lander-kto:latest
+    container_name: lunar-lander-kto-windows
+
+    environment:
+      - DISPLAY=host.docker.internal:0
+      - QT_X11_NO_MITSHM=1
+
+    volumes:
+      - ../../:/app
+      - ./recorded_episodes:/app/demo/interactive/recorded_episodes
+
+    stdin_open: true
+    tty: true
+
+    working_dir: /app/demo/interactive
+
+    command: python play.py

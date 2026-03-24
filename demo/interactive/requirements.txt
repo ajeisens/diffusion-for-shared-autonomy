@@ -1,0 +1,53 @@
+# Diffusion for Shared Autonomy - Requirements
+# Python version: Requires Python 3.10-3.12 (Drake dependency constraint)
+#
+# IMPORTANT: Drake is incompatible with Python 3.13+
+# Use Python 3.10, 3.11, or 3.12
+
+# ── Core Dependencies ──────────────────────────────────────────────────────
+
+# NumPy < 2.0 required for gym 0.26.2 compatibility
+numpy>=1.20.0,<2.0.0
+
+# SciPy for B-spline support (Drake trajectory optimization)
+scipy>=1.13.0
+
+# ── Environment ────────────────────────────────────────────────────────────
+
+# Gym for environment interface (0.26.2 is last stable before gymnasium fork)
+gym==0.26.2
+
+# Optional: Gymnasium (modern replacement for gym)
+# gymnasium>=0.29.0
+
+# ── Trajectory Optimization (KTO) ──────────────────────────────────────────
+
+# Drake: Robotics planning and optimization toolkit (~800MB)
+# Provides KinematicTrajectoryOptimization for B-spline trajectory planning
+# NOTE: Requires Python 3.10-3.12 only
+drake>=1.30.0
+
+# ── Visualization ──────────────────────────────────────────────────────────
+
+# Pygame for interactive demo rendering
+pygame>=2.5.0
+
+# ── Machine Learning ───────────────────────────────────────────────────────
+
+# PyTorch for diffusion model training
+torch>=2.0.0
+
+# Optional: Additional ML tools
+# einops>=0.6.0
+# tqdm>=4.60.0
+# wandb>=0.13.0
+
+# ── Development ────────────────────────────────────────────────────────────
+
+# Testing
+# pytest>=7.0.0
+# pytest-forked
+
+# Utilities
+# pyyaml>=6.0
+# matplotlib>=3.5.0

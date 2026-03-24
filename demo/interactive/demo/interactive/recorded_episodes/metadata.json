@@ -1,0 +1,1579 @@
+{
+  "env_name": "LunarLanderObstacle-v5",
+  "total_episodes": 173,
+  "episodes": [
+    {
+      "filename": "episode_20260324_160538_108879_teleop.pkl",
+      "mode": "teleop",
+      "success": false,
+      "collision": false,
+      "return": -160.41102600097656,
+      "length": 59,
+      "timestamp": "20260324_160538_108879"
+    },
+    {
+      "filename": "episode_20260324_160558_006858_heuristic.pkl",
+      "mode": "heuristic",
+      "success": false,
+      "collision": false,
+      "return": -95.42448425292969,
+      "length": 1000,
+      "timestamp": "20260324_160558_006858"
+    },
+    {
+      "filename": "episode_20260324_160604_349539_heuristic.pkl",
+      "mode": "heuristic",
+      "success": false,
+      "collision": false,
+      "return": -31.765045166015625,
+      "length": 89,
+      "timestamp": "20260324_160604_349539"
+    },
+    {
+      "filename": "episode_20260324_160608_498438_heuristic.pkl",
+      "mode": "heuristic",
+      "success": false,
+      "collision": false,
+      "return": 12.519657135009766,
+      "length": 169,
+      "timestamp": "20260324_160608_498438"
+    },
+    {
+      "filename": "episode_20260324_160609_578463_heuristic.pkl",
+      "mode": "heuristic",
+      "success": false,
+      "collision": true,
+      "return": -115.5978012084961,
+      "length": 28,
+      "timestamp": "20260324_160609_578463"
+    },
+    {
+      "filename": "episode_20260324_160615_696533_heuristic.pkl",
+      "mode": "heuristic",
+      "success": true,
+      "collision": false,
+      "return": 1189.822509765625,
+      "length": 236,
+      "timestamp": "20260324_160615_696533"
+    },
+    {
+      "filename": "episode_20260324_160622_446066_heuristic.pkl",
+      "mode": "heuristic",
+      "success": false,
+      "collision": false,
+      "return": 77.38302612304688,
+      "length": 319,
+      "timestamp": "20260324_160622_446066"
+    },
+    {
+      "filename": "episode_20260324_160623_274867_heuristic.pkl",
+      "mode": "heuristic",
+      "success": false,
+      "collision": true,
+      "return": -118.19178771972656,
+      "length": 10,
+      "timestamp": "20260324_160623_274867"
+    },
+    {
+      "filename": "episode_20260324_160651_153971_heuristic.pkl",
+      "mode": "heuristic",
+      "success": false,
+      "collision": false,
+      "return": -100.89271545410156,
+      "length": 1493,
+      "timestamp": "20260324_160651_153971"
+    },
+    {
+      "filename": "episode_20260324_161122_300645_teleop.pkl",
+      "mode": "teleop",
+      "success": false,
+      "collision": false,
+      "return": -302.75164794921875,
+      "length": 61,
+      "timestamp": "20260324_161122_300645"
+    },
+    {
+      "filename": "episode_20260324_161128_668999_heuristic.pkl",
+      "mode": "heuristic",
+      "success": false,
+      "collision": false,
+      "return": 130.61752319335938,
+      "length": 227,
+      "timestamp": "20260324_161128_668999"
+    },
+    {
+      "filename": "episode_20260324_161133_783114_heuristic.pkl",
+      "mode": "heuristic",
+      "success": false,
+      "collision": false,
+      "return": 140.33119201660156,
+      "length": 236,
+      "timestamp": "20260324_161133_783114"
+    },
+    {
+      "filename": "episode_20260324_161135_924614_heuristic.pkl",
+      "mode": "heuristic",
+      "success": false,
+      "collision": true,
+      "return": -68.4962158203125,
+      "length": 82,
+      "timestamp": "20260324_161135_924614"
+    },
+    {
+      "filename": "episode_20260324_161141_605302_heuristic.pkl",
+      "mode": "heuristic",
+      "success": false,
+      "collision": false,
+      "return": 81.09257507324219,
+      "length": 257,
+      "timestamp": "20260324_161141_605302"
+    },
+    {
+      "filename": "episode_20260324_161145_947301_heuristic.pkl",
+      "mode": "heuristic",
+      "success": true,
+      "collision": false,
+      "return": 1174.5772705078125,
+      "length": 199,
+      "timestamp": "20260324_161145_947301"
+    },
+    {
+      "filename": "episode_20260324_161150_842598_heuristic.pkl",
+      "mode": "heuristic",
+      "success": false,
+      "collision": false,
+      "return": 161.63430786132812,
+      "length": 178,
+      "timestamp": "20260324_161150_842598"
+    },
+    {
+      "filename": "episode_20260324_161154_964467_heuristic.pkl",
+      "mode": "heuristic",
+      "success": false,
+      "collision": false,
+      "return": 6.4894256591796875,
+      "length": 183,
+      "timestamp": "20260324_161154_964467"
+    },
+    {
+      "filename": "episode_20260324_161201_561354_heuristic.pkl",
+      "mode": "heuristic",
+      "success": false,
+      "collision": false,
+      "return": 164.63038635253906,
+      "length": 327,
+      "timestamp": "20260324_161201_561354"
+    },
+    {
+      "filename": "episode_20260324_161341_301049_heuristic.pkl",
+      "mode": "heuristic",
+      "success": false,
+      "collision": false,
+      "return": -500.9610290527344,
+      "length": 4572,
+      "timestamp": "20260324_161341_301049"
+    },
+    {
+      "filename": "episode_20260324_161717_712162_teleop.pkl",
+      "mode": "teleop",
+      "success": false,
+      "collision": true,
+      "return": -244.85565185546875,
+      "length": 71,
+      "timestamp": "20260324_161717_712162"
+    },
+    {
+      "filename": "episode_20260324_161718_955538_teleop.pkl",
+      "mode": "teleop",
+      "success": false,
+      "collision": false,
+      "return": -76.87760925292969,
+      "length": 66,
+      "timestamp": "20260324_161718_955538"
+    },
+    {
+      "filename": "episode_20260324_161720_000996_teleop.pkl",
+      "mode": "teleop",
+      "success": false,
+      "collision": true,
+      "return": -125.277099609375,
+      "length": 21,
+      "timestamp": "20260324_161720_000996"
+    },
+    {
+      "filename": "episode_20260324_161721_709676_teleop.pkl",
+      "mode": "teleop",
+      "success": false,
+      "collision": true,
+      "return": -112.1681137084961,
+      "length": 62,
+      "timestamp": "20260324_161721_709676"
+    },
+    {
+      "filename": "episode_20260324_161723_509018_teleop.pkl",
+      "mode": "teleop",
+      "success": false,
+      "collision": false,
+      "return": -132.1435089111328,
+      "length": 80,
+      "timestamp": "20260324_161723_509018"
+    },
+    {
+      "filename": "episode_20260324_161724_579424_teleop.pkl",
+      "mode": "teleop",
+      "success": false,
+      "collision": true,
+      "return": -113.8271484375,
+      "length": 38,
+      "timestamp": "20260324_161724_579424"
+    },
+    {
+      "filename": "episode_20260324_161726_535715_teleop.pkl",
+      "mode": "teleop",
+      "success": false,
+      "collision": false,
+      "return": -52.38670349121094,
+      "length": 94,
+      "timestamp": "20260324_161726_535715"
+    },
+    {
+      "filename": "episode_20260324_161728_940724_teleop.pkl",
+      "mode": "teleop",
+      "success": false,
+      "collision": false,
+      "return": -343.5050048828125,
+      "length": 115,
+      "timestamp": "20260324_161728_940724"
+    },
+    {
+      "filename": "episode_20260324_161731_224717_teleop.pkl",
+      "mode": "teleop",
+      "success": false,
+      "collision": false,
+      "return": -99.62293243408203,
+      "length": 58,
+      "timestamp": "20260324_161731_224717"
+    },
+    {
+      "filename": "episode_20260324_161733_151156_teleop.pkl",
+      "mode": "teleop",
+      "success": false,
+      "collision": false,
+      "return": -326.88262939453125,
+      "length": 90,
+      "timestamp": "20260324_161733_151156"
+    },
+    {
+      "filename": "episode_20260324_161735_628420_teleop.pkl",
+      "mode": "teleop",
+      "success": false,
+      "collision": false,
+      "return": -382.2593994140625,
+      "length": 106,
+      "timestamp": "20260324_161735_628420"
+    },
+    {
+      "filename": "episode_20260324_161737_517180_teleop.pkl",
+      "mode": "teleop",
+      "success": false,
+      "collision": false,
+      "return": -120.53437805175781,
+      "length": 95,
+      "timestamp": "20260324_161737_517180"
+    },
+    {
+      "filename": "episode_20260324_161739_178481_teleop.pkl",
+      "mode": "teleop",
+      "success": false,
+      "collision": true,
+      "return": -178.2496337890625,
+      "length": 73,
+      "timestamp": "20260324_161739_178481"
+    },
+    {
+      "filename": "episode_20260324_161741_202125_teleop.pkl",
+      "mode": "teleop",
+      "success": false,
+      "collision": false,
+      "return": -95.61427307128906,
+      "length": 83,
+      "timestamp": "20260324_161741_202125"
+    },
+    {
+      "filename": "episode_20260324_161742_292936_teleop.pkl",
+      "mode": "teleop",
+      "success": false,
+      "collision": true,
+      "return": -123.94511413574219,
+      "length": 24,
+      "timestamp": "20260324_161742_292936"
+    },
+    {
+      "filename": "episode_20260324_161744_742962_teleop.pkl",
+      "mode": "teleop",
+      "success": false,
+      "collision": false,
+      "return": -23.9610595703125,
+      "length": 89,
+      "timestamp": "20260324_161744_742962"
+    },
+    {
+      "filename": "episode_20260324_161750_878450_teleop.pkl",
+      "mode": "teleop",
+      "success": false,
+      "collision": false,
+      "return": -520.6603393554688,
+      "length": 96,
+      "timestamp": "20260324_161750_878450"
+    },
+    {
+      "filename": "episode_20260324_161751_819020_heuristic.pkl",
+      "mode": "heuristic",
+      "success": false,
+      "collision": true,
+      "return": -108.62232971191406,
+      "length": 21,
+      "timestamp": "20260324_161751_819020"
+    },
+    {
+      "filename": "episode_20260324_161754_888883_heuristic.pkl",
+      "mode": "heuristic",
+      "success": false,
+      "collision": false,
+      "return": -16.65917205810547,
+      "length": 114,
+      "timestamp": "20260324_161754_888883"
+    },
+    {
+      "filename": "episode_20260324_161801_118566_heuristic.pkl",
+      "mode": "heuristic",
+      "success": true,
+      "collision": false,
+      "return": 1188.6053466796875,
+      "length": 268,
+      "timestamp": "20260324_161801_118566"
+    },
+    {
+      "filename": "episode_20260324_161809_978914_heuristic.pkl",
+      "mode": "heuristic",
+      "success": true,
+      "collision": false,
+      "return": 1174.739990234375,
+      "length": 446,
+      "timestamp": "20260324_161809_978914"
+    },
+    {
+      "filename": "episode_20260324_161816_962905_heuristic.pkl",
+      "mode": "heuristic",
+      "success": true,
+      "collision": false,
+      "return": 1184.336669921875,
+      "length": 366,
+      "timestamp": "20260324_161816_962905"
+    },
+    {
+      "filename": "episode_20260324_161820_009618_heuristic.pkl",
+      "mode": "heuristic",
+      "success": false,
+      "collision": false,
+      "return": -32.34645080566406,
+      "length": 93,
+      "timestamp": "20260324_161820_009618"
+    },
+    {
+      "filename": "episode_20260324_161904_456574_heuristic.pkl",
+      "mode": "heuristic",
+      "success": false,
+      "collision": false,
+      "return": -158.38876342773438,
+      "length": 2111,
+      "timestamp": "20260324_161904_456574"
+    },
+    {
+      "filename": "episode_20260324_162201_384722_teleop.pkl",
+      "mode": "teleop",
+      "success": false,
+      "collision": true,
+      "return": -182.40582275390625,
+      "length": 68,
+      "timestamp": "20260324_162201_384722"
+    },
+    {
+      "filename": "episode_20260324_162205_460098_heuristic.pkl",
+      "mode": "heuristic",
+      "success": false,
+      "collision": true,
+      "return": -232.24951171875,
+      "length": 177,
+      "timestamp": "20260324_162205_460098"
+    },
+    {
+      "filename": "episode_20260324_162212_959277_heuristic.pkl",
+      "mode": "heuristic",
+      "success": false,
+      "collision": false,
+      "return": 143.014404296875,
+      "length": 426,
+      "timestamp": "20260324_162212_959277"
+    },
+    {
+      "filename": "episode_20260324_162213_934364_heuristic.pkl",
+      "mode": "heuristic",
+      "success": false,
+      "collision": true,
+      "return": -123.62287139892578,
+      "length": 22,
+      "timestamp": "20260324_162213_934364"
+    },
+    {
+      "filename": "episode_20260324_162216_855457_heuristic.pkl",
+      "mode": "heuristic",
+      "success": false,
+      "collision": true,
+      "return": -71.82930755615234,
+      "length": 143,
+      "timestamp": "20260324_162216_855457"
+    },
+    {
+      "filename": "episode_20260324_162225_047547_heuristic.pkl",
+      "mode": "heuristic",
+      "success": false,
+      "collision": false,
+      "return": 125.77361297607422,
+      "length": 434,
+      "timestamp": "20260324_162225_047547"
+    },
+    {
+      "filename": "episode_20260324_162229_320561_heuristic.pkl",
+      "mode": "heuristic",
+      "success": true,
+      "collision": false,
+      "return": 1187.501953125,
+      "length": 220,
+      "timestamp": "20260324_162229_320561"
+    },
+    {
+      "filename": "episode_20260324_162240_474034_heuristic.pkl",
+      "mode": "heuristic",
+      "success": false,
+      "collision": false,
+      "return": 97.66717529296875,
+      "length": 542,
+      "timestamp": "20260324_162240_474034"
+    },
+    {
+      "filename": "episode_20260324_162407_747614_heuristic.pkl",
+      "mode": "heuristic",
+      "success": false,
+      "collision": false,
+      "return": -423.1348571777344,
+      "length": 3578,
+      "timestamp": "20260324_162407_747614"
+    },
+    {
+      "filename": "episode_20260324_165816_007939_teleop.pkl",
+      "mode": "teleop",
+      "success": false,
+      "collision": true,
+      "return": -124.56747436523438,
+      "length": 31,
+      "timestamp": "20260324_165816_007939"
+    },
+    {
+      "filename": "episode_20260324_165819_272237_teleop.pkl",
+      "mode": "teleop",
+      "success": false,
+      "collision": false,
+      "return": -225.34288024902344,
+      "length": 121,
+      "timestamp": "20260324_165819_272237"
+    },
+    {
+      "filename": "episode_20260324_165822_123336_teleop.pkl",
+      "mode": "teleop",
+      "success": false,
+      "collision": false,
+      "return": -331.0582580566406,
+      "length": 111,
+      "timestamp": "20260324_165822_123336"
+    },
+    {
+      "filename": "episode_20260324_165824_013933_teleop.pkl",
+      "mode": "teleop",
+      "success": false,
+      "collision": false,
+      "return": -83.14607238769531,
+      "length": 82,
+      "timestamp": "20260324_165824_013933"
+    },
+    {
+      "filename": "episode_20260324_165833_921543_teleop.pkl",
+      "mode": "teleop",
+      "success": false,
+      "collision": false,
+      "return": -31.024620056152344,
+      "length": 89,
+      "timestamp": "20260324_165833_921543"
+    },
+    {
+      "filename": "episode_20260324_170136_628489_teleop.pkl",
+      "mode": "teleop",
+      "success": false,
+      "collision": true,
+      "return": -81.59864807128906,
+      "length": 87,
+      "timestamp": "20260324_170136_628489"
+    },
+    {
+      "filename": "episode_20260324_170138_746335_teleop.pkl",
+      "mode": "teleop",
+      "success": false,
+      "collision": false,
+      "return": -131.25167846679688,
+      "length": 81,
+      "timestamp": "20260324_170138_746335"
+    },
+    {
+      "filename": "episode_20260324_170140_573350_teleop.pkl",
+      "mode": "teleop",
+      "success": false,
+      "collision": false,
+      "return": -98.87618255615234,
+      "length": 69,
+      "timestamp": "20260324_170140_573350"
+    },
+    {
+      "filename": "episode_20260324_170141_972082_teleop.pkl",
+      "mode": "teleop",
+      "success": false,
+      "collision": true,
+      "return": -115.76980590820312,
+      "length": 49,
+      "timestamp": "20260324_170141_972082"
+    },
+    {
+      "filename": "episode_20260324_170143_144912_teleop.pkl",
+      "mode": "teleop",
+      "success": false,
+      "collision": true,
+      "return": -74.40957641601562,
+      "length": 43,
+      "timestamp": "20260324_170143_144912"
+    },
+    {
+      "filename": "episode_20260324_170144_644270_teleop.pkl",
+      "mode": "teleop",
+      "success": false,
+      "collision": false,
+      "return": -23.448741912841797,
+      "length": 88,
+      "timestamp": "20260324_170144_644270"
+    },
+    {
+      "filename": "episode_20260324_170146_370951_teleop.pkl",
+      "mode": "teleop",
+      "success": false,
+      "collision": false,
+      "return": -267.9949645996094,
+      "length": 83,
+      "timestamp": "20260324_170146_370951"
+    },
+    {
+      "filename": "episode_20260324_170147_644205_teleop.pkl",
+      "mode": "teleop",
+      "success": false,
+      "collision": false,
+      "return": -132.41580200195312,
+      "length": 59,
+      "timestamp": "20260324_170147_644205"
+    },
+    {
+      "filename": "episode_20260324_170149_773594_teleop.pkl",
+      "mode": "teleop",
+      "success": false,
+      "collision": false,
+      "return": -303.2083740234375,
+      "length": 100,
+      "timestamp": "20260324_170149_773594"
+    },
+    {
+      "filename": "episode_20260324_170152_359897_teleop.pkl",
+      "mode": "teleop",
+      "success": false,
+      "collision": false,
+      "return": -129.14405822753906,
+      "length": 112,
+      "timestamp": "20260324_170152_359897"
+    },
+    {
+      "filename": "episode_20260324_170153_606157_teleop.pkl",
+      "mode": "teleop",
+      "success": false,
+      "collision": true,
+      "return": -110.82501220703125,
+      "length": 45,
+      "timestamp": "20260324_170153_606157"
+    },
+    {
+      "filename": "episode_20260324_170156_308779_teleop.pkl",
+      "mode": "teleop",
+      "success": false,
+      "collision": false,
+      "return": -248.66139221191406,
+      "length": 136,
+      "timestamp": "20260324_170156_308779"
+    },
+    {
+      "filename": "episode_20260324_170157_571583_teleop.pkl",
+      "mode": "teleop",
+      "success": false,
+      "collision": true,
+      "return": -141.93450927734375,
+      "length": 48,
+      "timestamp": "20260324_170157_571583"
+    },
+    {
+      "filename": "episode_20260324_170159_905533_teleop.pkl",
+      "mode": "teleop",
+      "success": false,
+      "collision": false,
+      "return": -45.614784240722656,
+      "length": 112,
+      "timestamp": "20260324_170159_905533"
+    },
+    {
+      "filename": "episode_20260324_170207_522965_teleop.pkl",
+      "mode": "teleop",
+      "success": false,
+      "collision": false,
+      "return": 83.54145050048828,
+      "length": 377,
+      "timestamp": "20260324_170207_522965"
+    },
+    {
+      "filename": "episode_20260324_170209_554113_teleop.pkl",
+      "mode": "teleop",
+      "success": false,
+      "collision": false,
+      "return": -202.2321014404297,
+      "length": 67,
+      "timestamp": "20260324_170209_554113"
+    },
+    {
+      "filename": "episode_20260324_170211_142469_teleop.pkl",
+      "mode": "teleop",
+      "success": false,
+      "collision": false,
+      "return": -195.3873291015625,
+      "length": 67,
+      "timestamp": "20260324_170211_142469"
+    },
+    {
+      "filename": "episode_20260324_170213_329922_teleop.pkl",
+      "mode": "teleop",
+      "success": false,
+      "collision": false,
+      "return": -273.1674499511719,
+      "length": 91,
+      "timestamp": "20260324_170213_329922"
+    },
+    {
+      "filename": "episode_20260324_170215_760569_teleop.pkl",
+      "mode": "teleop",
+      "success": false,
+      "collision": false,
+      "return": -440.93695068359375,
+      "length": 113,
+      "timestamp": "20260324_170215_760569"
+    },
+    {
+      "filename": "episode_20260324_170216_970966_teleop.pkl",
+      "mode": "teleop",
+      "success": false,
+      "collision": false,
+      "return": -168.12881469726562,
+      "length": 68,
+      "timestamp": "20260324_170216_970966"
+    },
+    {
+      "filename": "episode_20260324_170219_362027_teleop.pkl",
+      "mode": "teleop",
+      "success": false,
+      "collision": false,
+      "return": -1.7743377685546875,
+      "length": 79,
+      "timestamp": "20260324_170219_362027"
+    },
+    {
+      "filename": "episode_20260324_170220_994184_teleop.pkl",
+      "mode": "teleop",
+      "success": false,
+      "collision": false,
+      "return": -179.0167999267578,
+      "length": 62,
+      "timestamp": "20260324_170220_994184"
+    },
+    {
+      "filename": "episode_20260324_170222_373859_teleop.pkl",
+      "mode": "teleop",
+      "success": false,
+      "collision": true,
+      "return": -96.23790740966797,
+      "length": 5,
+      "timestamp": "20260324_170222_373859"
+    },
+    {
+      "filename": "episode_20260324_170224_908630_teleop.pkl",
+      "mode": "teleop",
+      "success": false,
+      "collision": true,
+      "return": -413.59796142578125,
+      "length": 116,
+      "timestamp": "20260324_170224_908630"
+    },
+    {
+      "filename": "episode_20260324_170227_107670_teleop.pkl",
+      "mode": "teleop",
+      "success": false,
+      "collision": false,
+      "return": -143.236083984375,
+      "length": 91,
+      "timestamp": "20260324_170227_107670"
+    },
+    {
+      "filename": "episode_20260324_170229_168578_teleop.pkl",
+      "mode": "teleop",
+      "success": false,
+      "collision": false,
+      "return": -340.799072265625,
+      "length": 93,
+      "timestamp": "20260324_170229_168578"
+    },
+    {
+      "filename": "episode_20260324_170230_247772_teleop.pkl",
+      "mode": "teleop",
+      "success": false,
+      "collision": true,
+      "return": -131.66665649414062,
+      "length": 32,
+      "timestamp": "20260324_170230_247772"
+    },
+    {
+      "filename": "episode_20260324_170231_435729_teleop.pkl",
+      "mode": "teleop",
+      "success": false,
+      "collision": false,
+      "return": -26.08966064453125,
+      "length": 65,
+      "timestamp": "20260324_170231_435729"
+    },
+    {
+      "filename": "episode_20260324_170233_371333_teleop.pkl",
+      "mode": "teleop",
+      "success": false,
+      "collision": false,
+      "return": -320.3155212402344,
+      "length": 89,
+      "timestamp": "20260324_170233_371333"
+    },
+    {
+      "filename": "episode_20260324_170235_288052_teleop.pkl",
+      "mode": "teleop",
+      "success": false,
+      "collision": false,
+      "return": -309.7550354003906,
+      "length": 89,
+      "timestamp": "20260324_170235_288052"
+    },
+    {
+      "filename": "episode_20260324_170236_730797_teleop.pkl",
+      "mode": "teleop",
+      "success": false,
+      "collision": true,
+      "return": -117.878662109375,
+      "length": 50,
+      "timestamp": "20260324_170236_730797"
+    },
+    {
+      "filename": "episode_20260324_170238_429466_teleop.pkl",
+      "mode": "teleop",
+      "success": false,
+      "collision": false,
+      "return": -437.678955078125,
+      "length": 78,
+      "timestamp": "20260324_170238_429466"
+    },
+    {
+      "filename": "episode_20260324_170240_868945_teleop.pkl",
+      "mode": "teleop",
+      "success": false,
+      "collision": false,
+      "return": -182.02662658691406,
+      "length": 101,
+      "timestamp": "20260324_170240_868945"
+    },
+    {
+      "filename": "episode_20260324_170242_350932_teleop.pkl",
+      "mode": "teleop",
+      "success": false,
+      "collision": true,
+      "return": -97.6711654663086,
+      "length": 65,
+      "timestamp": "20260324_170242_350932"
+    },
+    {
+      "filename": "episode_20260324_170243_611651_teleop.pkl",
+      "mode": "teleop",
+      "success": false,
+      "collision": true,
+      "return": -92.94790649414062,
+      "length": 44,
+      "timestamp": "20260324_170243_611651"
+    },
+    {
+      "filename": "episode_20260324_170245_453241_teleop.pkl",
+      "mode": "teleop",
+      "success": false,
+      "collision": false,
+      "return": 33.660980224609375,
+      "length": 68,
+      "timestamp": "20260324_170245_453241"
+    },
+    {
+      "filename": "episode_20260324_170246_761880_teleop.pkl",
+      "mode": "teleop",
+      "success": false,
+      "collision": true,
+      "return": -102.64419555664062,
+      "length": 40,
+      "timestamp": "20260324_170246_761880"
+    },
+    {
+      "filename": "episode_20260324_170251_130619_teleop.pkl",
+      "mode": "teleop",
+      "success": false,
+      "collision": false,
+      "return": -16.093826293945312,
+      "length": 175,
+      "timestamp": "20260324_170251_130619"
+    },
+    {
+      "filename": "episode_20260324_170254_345480_teleop.pkl",
+      "mode": "teleop",
+      "success": false,
+      "collision": false,
+      "return": -128.86297607421875,
+      "length": 146,
+      "timestamp": "20260324_170254_345480"
+    },
+    {
+      "filename": "episode_20260324_170255_732849_teleop.pkl",
+      "mode": "teleop",
+      "success": false,
+      "collision": true,
+      "return": -138.80270385742188,
+      "length": 53,
+      "timestamp": "20260324_170255_732849"
+    },
+    {
+      "filename": "episode_20260324_170258_026970_teleop.pkl",
+      "mode": "teleop",
+      "success": false,
+      "collision": true,
+      "return": -76.86739349365234,
+      "length": 104,
+      "timestamp": "20260324_170258_026970"
+    },
+    {
+      "filename": "episode_20260324_170258_929058_teleop.pkl",
+      "mode": "teleop",
+      "success": false,
+      "collision": false,
+      "return": 35.73508071899414,
+      "length": 51,
+      "timestamp": "20260324_170258_929058"
+    },
+    {
+      "filename": "episode_20260324_170300_524856_teleop.pkl",
+      "mode": "teleop",
+      "success": false,
+      "collision": true,
+      "return": -182.84640502929688,
+      "length": 66,
+      "timestamp": "20260324_170300_524856"
+    },
+    {
+      "filename": "episode_20260324_170302_079251_teleop.pkl",
+      "mode": "teleop",
+      "success": false,
+      "collision": false,
+      "return": -290.918212890625,
+      "length": 72,
+      "timestamp": "20260324_170302_079251"
+    },
+    {
+      "filename": "episode_20260324_170304_294748_teleop.pkl",
+      "mode": "teleop",
+      "success": false,
+      "collision": false,
+      "return": -157.77664184570312,
+      "length": 107,
+      "timestamp": "20260324_170304_294748"
+    },
+    {
+      "filename": "episode_20260324_170305_806866_teleop.pkl",
+      "mode": "teleop",
+      "success": false,
+      "collision": false,
+      "return": -67.13606262207031,
+      "length": 68,
+      "timestamp": "20260324_170305_806866"
+    },
+    {
+      "filename": "episode_20260324_170308_918790_teleop.pkl",
+      "mode": "teleop",
+      "success": false,
+      "collision": false,
+      "return": -25.098575592041016,
+      "length": 130,
+      "timestamp": "20260324_170308_918790"
+    },
+    {
+      "filename": "episode_20260324_170310_632534_teleop.pkl",
+      "mode": "teleop",
+      "success": false,
+      "collision": false,
+      "return": -268.24560546875,
+      "length": 75,
+      "timestamp": "20260324_170310_632534"
+    },
+    {
+      "filename": "episode_20260324_170313_148957_teleop.pkl",
+      "mode": "teleop",
+      "success": false,
+      "collision": true,
+      "return": -272.30364990234375,
+      "length": 110,
+      "timestamp": "20260324_170313_148957"
+    },
+    {
+      "filename": "episode_20260324_170314_582038_teleop.pkl",
+      "mode": "teleop",
+      "success": false,
+      "collision": false,
+      "return": -136.10916137695312,
+      "length": 61,
+      "timestamp": "20260324_170314_582038"
+    },
+    {
+      "filename": "episode_20260324_170317_096526_teleop.pkl",
+      "mode": "teleop",
+      "success": false,
+      "collision": false,
+      "return": -425.19305419921875,
+      "length": 121,
+      "timestamp": "20260324_170317_096526"
+    },
+    {
+      "filename": "episode_20260324_170319_258339_teleop.pkl",
+      "mode": "teleop",
+      "success": false,
+      "collision": false,
+      "return": -347.72650146484375,
+      "length": 86,
+      "timestamp": "20260324_170319_258339"
+    },
+    {
+      "filename": "episode_20260324_170321_791853_teleop.pkl",
+      "mode": "teleop",
+      "success": false,
+      "collision": false,
+      "return": -212.6994171142578,
+      "length": 115,
+      "timestamp": "20260324_170321_791853"
+    },
+    {
+      "filename": "episode_20260324_170326_709127_teleop.pkl",
+      "mode": "teleop",
+      "success": false,
+      "collision": false,
+      "return": -64.24240112304688,
+      "length": 64,
+      "timestamp": "20260324_170326_709127"
+    },
+    {
+      "filename": "episode_20260324_170329_675225_heuristic.pkl",
+      "mode": "heuristic",
+      "success": false,
+      "collision": true,
+      "return": -60.270320892333984,
+      "length": 73,
+      "timestamp": "20260324_170329_675225"
+    },
+    {
+      "filename": "episode_20260324_170345_768408_heuristic.pkl",
+      "mode": "heuristic",
+      "success": false,
+      "collision": false,
+      "return": 132.74029541015625,
+      "length": 185,
+      "timestamp": "20260324_170345_768408"
+    },
+    {
+      "filename": "episode_20260324_170409_242075_heuristic.pkl",
+      "mode": "heuristic",
+      "success": false,
+      "collision": false,
+      "return": -56.729393005371094,
+      "length": 403,
+      "timestamp": "20260324_170409_242075"
+    },
+    {
+      "filename": "episode_20260324_171012_862857_teleop.pkl",
+      "mode": "teleop",
+      "success": false,
+      "collision": true,
+      "return": -148.52061462402344,
+      "length": 31,
+      "timestamp": "20260324_171012_862857"
+    },
+    {
+      "filename": "episode_20260324_171017_950487_heuristic.pkl",
+      "mode": "heuristic",
+      "success": true,
+      "collision": false,
+      "return": 1189.8466796875,
+      "length": 214,
+      "timestamp": "20260324_171017_950487"
+    },
+    {
+      "filename": "episode_20260324_171022_700073_heuristic.pkl",
+      "mode": "heuristic",
+      "success": false,
+      "collision": false,
+      "return": 36.547908782958984,
+      "length": 184,
+      "timestamp": "20260324_171022_700073"
+    },
+    {
+      "filename": "episode_20260324_171030_169302_heuristic.pkl",
+      "mode": "heuristic",
+      "success": false,
+      "collision": false,
+      "return": -77.82400512695312,
+      "length": 290,
+      "timestamp": "20260324_171030_169302"
+    },
+    {
+      "filename": "episode_20260324_171031_166395_heuristic.pkl",
+      "mode": "heuristic",
+      "success": false,
+      "collision": true,
+      "return": -118.28804779052734,
+      "length": 10,
+      "timestamp": "20260324_171031_166395"
+    },
+    {
+      "filename": "episode_20260324_171034_903394_heuristic.pkl",
+      "mode": "heuristic",
+      "success": false,
+      "collision": false,
+      "return": 11.694149017333984,
+      "length": 128,
+      "timestamp": "20260324_171034_903394"
+    },
+    {
+      "filename": "episode_20260324_171040_454719_heuristic.pkl",
+      "mode": "heuristic",
+      "success": true,
+      "collision": false,
+      "return": 1208.5009765625,
+      "length": 210,
+      "timestamp": "20260324_171040_454719"
+    },
+    {
+      "filename": "episode_20260324_171041_914137_heuristic.pkl",
+      "mode": "heuristic",
+      "success": false,
+      "collision": true,
+      "return": -129.9861602783203,
+      "length": 33,
+      "timestamp": "20260324_171041_914137"
+    },
+    {
+      "filename": "episode_20260324_171046_290459_heuristic.pkl",
+      "mode": "heuristic",
+      "success": false,
+      "collision": false,
+      "return": 57.65524673461914,
+      "length": 171,
+      "timestamp": "20260324_171046_290459"
+    },
+    {
+      "filename": "episode_20260324_171054_903792_heuristic.pkl",
+      "mode": "heuristic",
+      "success": true,
+      "collision": false,
+      "return": 1178.35009765625,
+      "length": 193,
+      "timestamp": "20260324_171054_903792"
+    },
+    {
+      "filename": "episode_20260324_171056_179641_teleop.pkl",
+      "mode": "teleop",
+      "success": false,
+      "collision": false,
+      "return": -82.34605407714844,
+      "length": 57,
+      "timestamp": "20260324_171056_179641"
+    },
+    {
+      "filename": "episode_20260324_171101_078580_teleop.pkl",
+      "mode": "teleop",
+      "success": false,
+      "collision": false,
+      "return": 51.838623046875,
+      "length": 110,
+      "timestamp": "20260324_171101_078580"
+    },
+    {
+      "filename": "episode_20260324_171103_138952_teleop.pkl",
+      "mode": "teleop",
+      "success": false,
+      "collision": false,
+      "return": -467.9652404785156,
+      "length": 67,
+      "timestamp": "20260324_171103_138952"
+    },
+    {
+      "filename": "episode_20260324_171104_517785_teleop.pkl",
+      "mode": "teleop",
+      "success": false,
+      "collision": true,
+      "return": -115.5801773071289,
+      "length": 41,
+      "timestamp": "20260324_171104_517785"
+    },
+    {
+      "filename": "episode_20260324_171106_431384_teleop.pkl",
+      "mode": "teleop",
+      "success": false,
+      "collision": true,
+      "return": -141.0410919189453,
+      "length": 47,
+      "timestamp": "20260324_171106_431384"
+    },
+    {
+      "filename": "episode_20260324_171108_891741_teleop.pkl",
+      "mode": "teleop",
+      "success": false,
+      "collision": true,
+      "return": -172.67282104492188,
+      "length": 82,
+      "timestamp": "20260324_171108_891741"
+    },
+    {
+      "filename": "episode_20260324_171110_336741_teleop.pkl",
+      "mode": "teleop",
+      "success": false,
+      "collision": true,
+      "return": -110.3436508178711,
+      "length": 44,
+      "timestamp": "20260324_171110_336741"
+    },
+    {
+      "filename": "episode_20260324_171112_379959_teleop.pkl",
+      "mode": "teleop",
+      "success": false,
+      "collision": false,
+      "return": -198.817626953125,
+      "length": 78,
+      "timestamp": "20260324_171112_379959"
+    },
+    {
+      "filename": "episode_20260324_171113_599770_teleop.pkl",
+      "mode": "teleop",
+      "success": false,
+      "collision": true,
+      "return": -118.9729232788086,
+      "length": 34,
+      "timestamp": "20260324_171113_599770"
+    },
+    {
+      "filename": "episode_20260324_171115_430053_teleop.pkl",
+      "mode": "teleop",
+      "success": false,
+      "collision": false,
+      "return": -113.98725128173828,
+      "length": 60,
+      "timestamp": "20260324_171115_430053"
+    },
+    {
+      "filename": "episode_20260324_171116_837135_teleop.pkl",
+      "mode": "teleop",
+      "success": false,
+      "collision": false,
+      "return": -124.08682250976562,
+      "length": 50,
+      "timestamp": "20260324_171116_837135"
+    },
+    {
+      "filename": "episode_20260324_171118_900063_teleop.pkl",
+      "mode": "teleop",
+      "success": false,
+      "collision": false,
+      "return": -170.57632446289062,
+      "length": 84,
+      "timestamp": "20260324_171118_900063"
+    },
+    {
+      "filename": "episode_20260324_171120_433800_teleop.pkl",
+      "mode": "teleop",
+      "success": false,
+      "collision": true,
+      "return": -106.9415512084961,
+      "length": 46,
+      "timestamp": "20260324_171120_433800"
+    },
+    {
+      "filename": "episode_20260324_171122_022250_teleop.pkl",
+      "mode": "teleop",
+      "success": false,
+      "collision": true,
+      "return": -230.54830932617188,
+      "length": 52,
+      "timestamp": "20260324_171122_022250"
+    },
+    {
+      "filename": "episode_20260324_171124_419654_teleop.pkl",
+      "mode": "teleop",
+      "success": false,
+      "collision": false,
+      "return": -140.48233032226562,
+      "length": 84,
+      "timestamp": "20260324_171124_419654"
+    },
+    {
+      "filename": "episode_20260324_171126_035640_teleop.pkl",
+      "mode": "teleop",
+      "success": false,
+      "collision": false,
+      "return": -150.89825439453125,
+      "length": 65,
+      "timestamp": "20260324_171126_035640"
+    },
+    {
+      "filename": "episode_20260324_171127_628114_teleop.pkl",
+      "mode": "teleop",
+      "success": false,
+      "collision": false,
+      "return": -69.22114562988281,
+      "length": 53,
+      "timestamp": "20260324_171127_628114"
+    },
+    {
+      "filename": "episode_20260324_171129_713804_teleop.pkl",
+      "mode": "teleop",
+      "success": false,
+      "collision": false,
+      "return": -61.07355880737305,
+      "length": 53,
+      "timestamp": "20260324_171129_713804"
+    },
+    {
+      "filename": "episode_20260324_171132_804272_teleop.pkl",
+      "mode": "teleop",
+      "success": false,
+      "collision": false,
+      "return": -234.54190063476562,
+      "length": 106,
+      "timestamp": "20260324_171132_804272"
+    },
+    {
+      "filename": "episode_20260324_171133_770932_teleop.pkl",
+      "mode": "teleop",
+      "success": false,
+      "collision": true,
+      "return": -118.63450622558594,
+      "length": 16,
+      "timestamp": "20260324_171133_770932"
+    },
+    {
+      "filename": "episode_20260324_171138_480378_teleop.pkl",
+      "mode": "teleop",
+      "success": false,
+      "collision": false,
+      "return": -89.16499328613281,
+      "length": 177,
+      "timestamp": "20260324_171138_480378"
+    },
+    {
+      "filename": "episode_20260324_171141_092006_teleop.pkl",
+      "mode": "teleop",
+      "success": false,
+      "collision": false,
+      "return": -97.00476837158203,
+      "length": 85,
+      "timestamp": "20260324_171141_092006"
+    },
+    {
+      "filename": "episode_20260324_171143_116772_teleop.pkl",
+      "mode": "teleop",
+      "success": false,
+      "collision": true,
+      "return": -167.14071655273438,
+      "length": 64,
+      "timestamp": "20260324_171143_116772"
+    },
+    {
+      "filename": "episode_20260324_171145_483659_teleop.pkl",
+      "mode": "teleop",
+      "success": false,
+      "collision": false,
+      "return": -435.25970458984375,
+      "length": 70,
+      "timestamp": "20260324_171145_483659"
+    },
+    {
+      "filename": "episode_20260324_171148_144084_teleop.pkl",
+      "mode": "teleop",
+      "success": false,
+      "collision": true,
+      "return": -242.73272705078125,
+      "length": 88,
+      "timestamp": "20260324_171148_144084"
+    },
+    {
+      "filename": "episode_20260324_171150_042981_teleop.pkl",
+      "mode": "teleop",
+      "success": false,
+      "collision": false,
+      "return": -286.0854187011719,
+      "length": 61,
+      "timestamp": "20260324_171150_042981"
+    },
+    {
+      "filename": "episode_20260324_171152_670695_teleop.pkl",
+      "mode": "teleop",
+      "success": false,
+      "collision": false,
+      "return": -94.86384582519531,
+      "length": 94,
+      "timestamp": "20260324_171152_670695"
+    },
+    {
+      "filename": "episode_20260324_171153_808733_teleop.pkl",
+      "mode": "teleop",
+      "success": false,
+      "collision": false,
+      "return": -59.420719146728516,
+      "length": 52,
+      "timestamp": "20260324_171153_808733"
+    },
+    {
+      "filename": "episode_20260324_171843_624278_teleop.pkl",
+      "mode": "teleop",
+      "success": false,
+      "collision": false,
+      "return": -8.8377685546875,
+      "length": 121,
+      "timestamp": "20260324_171843_624278"
+    },
+    {
+      "filename": "episode_20260324_171847_454239_heuristic.pkl",
+      "mode": "heuristic",
+      "success": true,
+      "collision": false,
+      "return": 1143.6729736328125,
+      "length": 200,
+      "timestamp": "20260324_171847_454239"
+    },
+    {
+      "filename": "episode_20260324_171851_932398_heuristic.pkl",
+      "mode": "heuristic",
+      "success": true,
+      "collision": false,
+      "return": 1181.5443115234375,
+      "length": 239,
+      "timestamp": "20260324_171851_932398"
+    },
+    {
+      "filename": "episode_20260324_171900_156200_heuristic.pkl",
+      "mode": "heuristic",
+      "success": false,
+      "collision": false,
+      "return": -24.954345703125,
+      "length": 409,
+      "timestamp": "20260324_171900_156200"
+    },
+    {
+      "filename": "episode_20260324_171904_288569_heuristic.pkl",
+      "mode": "heuristic",
+      "success": false,
+      "collision": false,
+      "return": -43.156394958496094,
+      "length": 214,
+      "timestamp": "20260324_171904_288569"
+    },
+    {
+      "filename": "episode_20260324_171907_155551_heuristic.pkl",
+      "mode": "heuristic",
+      "success": false,
+      "collision": false,
+      "return": -28.5897216796875,
+      "length": 100,
+      "timestamp": "20260324_171907_155551"
+    },
+    {
+      "filename": "episode_20260324_171908_252377_heuristic.pkl",
+      "mode": "heuristic",
+      "success": false,
+      "collision": true,
+      "return": -142.2674560546875,
+      "length": 28,
+      "timestamp": "20260324_171908_252377"
+    },
+    {
+      "filename": "episode_20260324_171914_406594_heuristic.pkl",
+      "mode": "heuristic",
+      "success": false,
+      "collision": true,
+      "return": -117.73686218261719,
+      "length": 44,
+      "timestamp": "20260324_171914_406594"
+    },
+    {
+      "filename": "episode_20260324_171919_773763_heuristic.pkl",
+      "mode": "heuristic",
+      "success": false,
+      "collision": false,
+      "return": 0.4189338684082031,
+      "length": 130,
+      "timestamp": "20260324_171919_773763"
+    },
+    {
+      "filename": "episode_20260324_171923_223881_heuristic.pkl",
+      "mode": "heuristic",
+      "success": false,
+      "collision": false,
+      "return": 7.812995910644531,
+      "length": 150,
+      "timestamp": "20260324_171923_223881"
+    },
+    {
+      "filename": "episode_20260324_171924_682221_heuristic.pkl",
+      "mode": "heuristic",
+      "success": false,
+      "collision": true,
+      "return": -112.46388244628906,
+      "length": 37,
+      "timestamp": "20260324_171924_682221"
+    },
+    {
+      "filename": "episode_20260324_171929_218021_heuristic.pkl",
+      "mode": "heuristic",
+      "success": false,
+      "collision": false,
+      "return": 138.88343811035156,
+      "length": 229,
+      "timestamp": "20260324_171929_218021"
+    },
+    {
+      "filename": "episode_20260324_171930_799717_heuristic.pkl",
+      "mode": "heuristic",
+      "success": false,
+      "collision": true,
+      "return": -107.03694152832031,
+      "length": 35,
+      "timestamp": "20260324_171930_799717"
+    },
+    {
+      "filename": "episode_20260324_172054_224470_teleop.pkl",
+      "mode": "teleop",
+      "success": false,
+      "collision": false,
+      "return": -158.48561096191406,
+      "length": 77,
+      "timestamp": "20260324_172054_224470"
+    },
+    {
+      "filename": "episode_20260324_172056_359159_heuristic.pkl",
+      "mode": "heuristic",
+      "success": false,
+      "collision": true,
+      "return": -132.87416076660156,
+      "length": 50,
+      "timestamp": "20260324_172056_359159"
+    },
+    {
+      "filename": "episode_20260324_172101_227916_heuristic.pkl",
+      "mode": "heuristic",
+      "success": true,
+      "collision": false,
+      "return": 1154.92578125,
+      "length": 241,
+      "timestamp": "20260324_172101_227916"
+    },
+    {
+      "filename": "episode_20260324_172105_869464_heuristic.pkl",
+      "mode": "heuristic",
+      "success": false,
+      "collision": false,
+      "return": 161.90652465820312,
+      "length": 222,
+      "timestamp": "20260324_172105_869464"
+    },
+    {
+      "filename": "episode_20260324_172109_553283_heuristic.pkl",
+      "mode": "heuristic",
+      "success": false,
+      "collision": false,
+      "return": 125.54039001464844,
+      "length": 185,
+      "timestamp": "20260324_172109_553283"
+    },
+    {
+      "filename": "episode_20260324_172115_217059_heuristic.pkl",
+      "mode": "heuristic",
+      "success": false,
+      "collision": false,
+      "return": -0.223968505859375,
+      "length": 181,
+      "timestamp": "20260324_172115_217059"
+    },
+    {
+      "filename": "episode_20260324_172120_006424_heuristic.pkl",
+      "mode": "heuristic",
+      "success": true,
+      "collision": false,
+      "return": 1193.6480712890625,
+      "length": 224,
+      "timestamp": "20260324_172120_006424"
+    },
+    {
+      "filename": "episode_20260324_172121_640223_heuristic.pkl",
+      "mode": "heuristic",
+      "success": false,
+      "collision": true,
+      "return": -119.26594543457031,
+      "length": 62,
+      "timestamp": "20260324_172121_640223"
+    }
+  ],
+  "statistics": {
+    "teleop": {
+      "count": 110,
+      "success_rate": 0.0,
+      "collision_rate": 0.3181818181818182,
+      "avg_return": -163.7656000657515,
+      "avg_length": 79.07272727272728
+    },
+    "mpc": {
+      "count": 0,
+      "success_rate": 0.0,
+      "collision_rate": 0.0,
+      "avg_return": 0.0,
+      "avg_length": 0.0
+    }
+  }
+}
