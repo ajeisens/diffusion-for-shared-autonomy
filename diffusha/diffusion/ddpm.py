@@ -167,16 +167,59 @@ class DiffusionModel:
         return sample
 
     @torch.no_grad()
+    def _guided_eps(
+        self,
+        x_cond: torch.Tensor,
+        x_uncond: torch.Tensor,
+        t: torch.Tensor,
+        guidance_scale: float,
+    ) -> torch.Tensor:
+        """Compute classifier-free guided noise estimate.
+
+        Blends conditional and unconditional model predictions:
+            ε_guided = ε_uncond + guidance_scale * (ε_cond - ε_uncond)
+
+        guidance_scale > 1 amplifies the conditional signal (prefer collision-free).
+        guidance_scale = 1 recovers the purely conditional prediction.
+        guidance_scale = 0 recovers the unconditional prediction.
+
+        Args:
+            x_cond:   noisy sample with quality label = 1 (no-collision conditioning)
+            x_uncond: noisy sample with quality label = 0 (dropped / unconditional)
+            t:        scalar timestep tensor
+            guidance_scale: CFG blending coefficient λ
+        """
+        eps_cond = self.model(x_cond, t)
+        eps_uncond = self.model(x_uncond, t)
+        return eps_uncond + guidance_scale * (eps_cond - eps_uncond)
+
+    @torch.no_grad()
     def p_sample_loop(
         self,
         shape,
         start_x: torch.Tensor | None = None,
         cond: torch.Tensor | None = None,
         naive_cond: bool = False,
+        uncond: torch.Tensor | None = None,
+        guidance_scale: float = 1.0,
     ):
-        """Peforms conditional sampling (if cond is not None)
+        """Performs conditional sampling (if cond is not None).
 
-        This assumes cond Tensor corresponds to the first cond.shape[0] dimension of diffusion state space.
+        Supports classifier-free guidance (CFG) for quality-conditioned models
+        via the uncond and guidance_scale parameters (π0.6 / RECAP style).
+
+        Args:
+            shape:          Shape of sample tensor to generate.
+            start_x:        Optional starting noise tensor.
+            cond:           Conditioning tensor (replaces first cond.shape[-1] dims).
+                            For quality-conditioned models: [obs(6), quality=1.0].
+            naive_cond:     If True, use simple replacement instead of noisy conditioning.
+            uncond:         Unconditional conditioning tensor for CFG guidance.
+                            For quality-conditioned models: [obs(6), quality=0.0].
+                            Required when guidance_scale != 1.0.
+            guidance_scale: CFG blending coefficient λ.
+                            1.0 = standard conditional sampling (no guidance).
+                            > 1.0 = amplify collision-free signal.
         """
 
         def apply_naive_condition(x: torch.Tensor, cond: torch.Tensor, timestep: int):
@@ -216,6 +259,8 @@ class DiffusionModel:
 
         _apply_cond = apply_naive_condition if naive_cond else apply_condition
 
+        use_guidance = (guidance_scale != 1.0) and (uncond is not None)
+
         # Use start_x if specified
         if start_x is not None:
             assert shape == start_x.shape
@@ -225,10 +270,36 @@ class DiffusionModel:
 
         x_seq = []
         for k in reversed(range(self.num_diffusion_steps)):
-            if cond is not None:
-                x = _apply_cond(x, cond, k)
+            if use_guidance:
+                # CFG: maintain two parallel states — conditional and unconditional.
+                # Both start from the same x; cond/uncond diverge only in the
+                # first cond_dim dimensions (obs + quality label).
+                x_c = _apply_cond(x.clone(), cond, k)
+                x_u = _apply_cond(x.clone(), uncond, k)
+
+                x_c = x_c.float().to(self.device)
+                x_u = x_u.float().to(self.device)
+                t_tensor = torch.tensor([k]).to(self.device)
+
+                # Guided noise estimate
+                eps = self._guided_eps(x_c, x_u, t_tensor, guidance_scale)
+
+                # Denoising step using guided ε (same formula as p_sample)
+                eps_factor = (1 - extract(self.alphas, t_tensor, x_c)) / extract(
+                    self.one_minus_alphas_bar_sqrt, t_tensor, x_c
+                )
+                mean = (1 / extract(self.alphas, t_tensor, x_c).sqrt()) * (
+                    x_c - eps_factor * eps
+                )
+                z = torch.randn_like(x_c)
+                sigma_t = extract(self.betas, t_tensor, x_c).sqrt()
+                x = mean + sigma_t * z
+            else:
+                if cond is not None:
+                    x = _apply_cond(x, cond, k)
+                x = self.p_sample(x, k)
+
             x_seq.append(x.detach().cpu())
-            x = self.p_sample(x, k)
 
         # Don't forget to append the last one
         x_seq.append(x.detach().cpu())

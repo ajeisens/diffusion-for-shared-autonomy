@@ -9,6 +9,7 @@ from torch.optim import optimizer
 from torch.utils.data import IterableDataset, DataLoader
 from diffusha.data_collection.env import is_lunarlander, make_env
 from diffusha.data_collection.generate_data import ReplayBuffer
+from diffusha.data_collection.episode_dataset import EpisodeDataset
 from diffusha.config.default_args import Args
 import wandb
 
@@ -88,7 +89,77 @@ def get_datadir(env_name, randp):
     return data_dir
 
 
+def main_episodes():
+    """Training entry point for KTO LunarLander episode data.
+
+    Used when Args.data_source == 'episodes'. Loads from EpisodeRecorder .pkl
+    files instead of the legacy ReplayBuffer format. Skips SAC-based evaluation
+    during training (use eval_kto.py for post-training evaluation instead).
+
+    KTO environment dimensions:
+        copilot_obs_size = 6   [x, y, θ, vx, vy, ω]
+        act_size         = 2   [main_thrust, side_thrust]
+
+    With quality conditioning (Args.quality_cond = True):
+        input_size = 9,  cond_dim = 7  (obs + quality label kept noise-free)
+    Without:
+        input_size = 8,  cond_dim = 6
+    """
+    # KTO environment has fixed dimensions — no need to instantiate an env.
+    copilot_obs_size = 6
+    act_size = 2
+
+    # Optional quality label dim for CFG training
+    quality_dim = 1 if Args.quality_cond else 0
+    input_size = copilot_obs_size + quality_dim + act_size
+    cond_dim = copilot_obs_size + quality_dim
+
+    dataset = EpisodeDataset(
+        data_dir=Args.episode_data_dir,
+        modes=list(Args.episode_modes) if Args.episode_modes is not None else None,
+        copilot_obs_dim=copilot_obs_size,
+        include_quality_label=Args.quality_cond,
+        cfg_dropout_prob=Args.cfg_dropout_prob,
+        seed=Args.seed,
+    )
+    print(f"Dataset: {dataset.episode_count()} episodes, "
+          f"success={dataset.success_rate():.1%}, "
+          f"collision={dataset.collision_rate():.1%}")
+
+    loader = iter(DataLoader(dataset, batch_size=Args.batch_size, num_workers=4))
+
+    diffusion = DiffusionModel(
+        diffusion_core=DiffusionCore(),
+        num_diffusion_steps=Args.num_diffusion_steps,
+        input_size=input_size,
+        beta_schedule=Args.beta_schedule,
+        beta_min=Args.beta_min,
+        beta_max=Args.beta_max,
+        cond_dim=cond_dim,
+    )
+
+    trainer = Trainer(
+        diffusion,
+        cond_dim,   # obs_size used for logging; matches cond_dim here
+        act_size,
+        save_every=Args.save_every,
+        eval_every=Args.eval_every,
+    )
+
+    # No make_eval_env: use eval_kto.py for post-training evaluation.
+    trainer.train(
+        loader,
+        make_eval_env=None,
+        num_training_steps=Args.num_training_steps,
+        eval_assistance=False,
+    )
+
+
 def main():
+    if Args.data_source == 'episodes':
+        main_episodes()
+        return
+
     make_eval_env = lambda **kwargs: make_env(
         Args.env_name,
         test=True,
