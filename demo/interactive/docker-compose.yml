@@ -4,7 +4,7 @@ services:
   lunar-lander-kto:
     build:
       context: ../..  # Build from repo root
-      dockerfile: demo/interactive/Dockerfile
+      dockerfile: demo/interactive/Dockerfile.ubuntu
     image: lunar-lander-kto:latest
     container_name: lunar-lander-kto
 
@@ -44,7 +44,7 @@ services:
     profiles: ["windows"]
     build:
       context: ../..
-      dockerfile: demo/interactive/Dockerfile
+      dockerfile: demo/interactive/Dockerfile.ubuntu
     image: lunar-lander-kto:latest
     container_name: lunar-lander-kto-windows
 

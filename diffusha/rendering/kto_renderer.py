@@ -23,11 +23,15 @@ TRACE_COL = (80, 80, 120)
 HUD_TEXT = (180, 180, 180)
 SUCCESS_TEXT = (100, 255, 100)
 FAIL_TEXT = (255, 100, 100)
-OBSTACLE_COL = (180, 60, 60)
+OBSTACLE_COL = (255, 100, 100)  # Bright red/pink
+OBSTACLE_BORDER = (255, 50, 50)  # Darker red border
+OBSTACLE_GLOW = (255, 150, 150)  # Lighter glow
 PLAN_PATH = (60, 100, 160)
 PLAN_DOT = (180, 220, 255)
 PROGRESS_BG = (40, 40, 40)
 PROGRESS_FG = (100, 180, 255)
+LIDAR_RAY = (100, 200, 100)  # Green for clear
+LIDAR_HIT = (255, 200, 100)  # Yellow/orange for obstacle detected
 
 # Lander geometry (body coordinates in pixels)
 LANDER_BODY = [(-14, 17), (-17, 0), (-17, -10), (17, -10), (17, 0), (14, 17)]
@@ -148,7 +152,7 @@ class KTORenderer:
 
     def draw_obstacles(self, surface: pygame.Surface,
                        obstacles: List[Tuple[float, float, float]]):
-        """Draw circular obstacles.
+        """Draw circular obstacles with glow effect and border.
 
         Args:
             surface: Pygame surface to draw on
@@ -157,8 +161,19 @@ class KTORenderer:
         for cx, cy, r in obstacles:
             screen_x, screen_y = self.world_to_screen(cx, cy)
             screen_radius = int(r * self.scale)
+
+            # Draw outer glow (larger, semi-transparent)
+            glow_radius = screen_radius + 6
+            pygame.draw.circle(surface, OBSTACLE_GLOW, (screen_x, screen_y),
+                             glow_radius, 3)
+
+            # Draw filled obstacle
             pygame.draw.circle(surface, OBSTACLE_COL, (screen_x, screen_y),
                              screen_radius)
+
+            # Draw thick border
+            pygame.draw.circle(surface, OBSTACLE_BORDER, (screen_x, screen_y),
+                             screen_radius, 3)
 
     def draw_lander(self, surface: pygame.Surface, x: float, y: float,
                     theta: float, Fm: float, Fs: float):
@@ -224,6 +239,52 @@ class KTORenderer:
         for i in range(0, len(trace), 3):
             screen_pos = self.world_to_screen(*trace[i])
             pygame.draw.circle(surface, TRACE_COL, screen_pos, 2)
+
+    def draw_lidar_rays(self, surface: pygame.Surface, x: float, y: float,
+                       theta: float, lidar_readings: np.ndarray,
+                       max_distance: float = 3.0, n_rays: int = 8,
+                       occluded_rays: set = None):
+        """Draw lidar rays from lander position.
+
+        Args:
+            surface: Pygame surface to draw on
+            x, y: Lander position (world units)
+            theta: Lander angle (radians)
+            lidar_readings: Array of normalized distances [0, 1] where 1.0 = max range
+            max_distance: Maximum lidar range in world units
+            n_rays: Number of rays
+            occluded_rays: Set of occluded ray indices (drawn differently)
+        """
+        if occluded_rays is None:
+            occluded_rays = set()
+
+        # Lidar rays are evenly spaced around 2π
+        for i in range(n_rays):
+            ray_angle = theta + (2 * np.pi * i / n_rays)
+
+            # Get distance from reading (1.0 = max range, lower = closer obstacle)
+            normalized_dist = lidar_readings[i]
+            distance = normalized_dist * max_distance
+
+            # End point of ray
+            end_x = x + distance * np.cos(ray_angle)
+            end_y = y + distance * np.sin(ray_angle)
+
+            # Choose color based on detection and occlusion
+            if i in occluded_rays:
+                color = (150, 150, 50)  # Yellow for occluded
+                width = 1
+            elif normalized_dist < 0.9:  # Detected something close
+                color = LIDAR_HIT
+                width = 2
+            else:  # Clear
+                color = LIDAR_RAY
+                width = 1
+
+            # Draw ray
+            start_screen = self.world_to_screen(x, y)
+            end_screen = self.world_to_screen(end_x, end_y)
+            pygame.draw.line(surface, color, start_screen, end_screen, width)
 
     def draw_planned_trajectory(self, surface: pygame.Surface,
                                plan: Optional[Dict[str, np.ndarray]],

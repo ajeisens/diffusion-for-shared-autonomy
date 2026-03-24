@@ -54,9 +54,10 @@ except ImportError:
 
 def heuristic(env, s):
     """
-    Heuristic controller for Lunar Lander (from OpenAI Gym).
+    Heuristic controller for Lunar Lander (tuned for KTO physics).
 
     A PID-based controller that uses state feedback to land the lander.
+    Gains tuned for KTO simplified rocket physics (no damping).
 
     Args:
         env: The environment
@@ -68,23 +69,30 @@ def heuristic(env, s):
     # Extract state (first 6 elements)
     x, y, theta, vx, vy, omega = s[:6]
 
-    angle_targ = x * 0.5 + vx * 1.0  # angle should point towards center
+    # Observations are normalized: pad_x ≈ 1.0, x/y in ~[0, 1.5]
+    pad_x = s[14]
+    dx = x - pad_x  # relative position to pad (negative = lander is left of pad)
+
+    # Angle target: tilt toward pad using relative position
+    # In KTO physics: positive a[1] → Fs > 0 → alpha > 0 → theta increases
+    angle_targ = dx * 0.5 + vx * 1.0
     if angle_targ > 0.4:
         angle_targ = 0.4
     if angle_targ < -0.4:
         angle_targ = -0.4
-    hover_targ = 0.55 * np.abs(x)
+    hover_targ = 0.55 * np.abs(dx)
 
-    angle_todo = (angle_targ - theta) * 0.5 - omega * 1.0
+    angle_todo = (angle_targ - theta) * 0.5 - omega * 3.0
     hover_todo = (hover_targ - y) * 0.5 - vy * 0.5
 
-    # KTO env doesn't have leg contact in observation, so check ground proximity
-    if y < 3.5:  # Near ground
+    # Near ground: disable angle correction, use gravity feedforward for soft landing.
+    # Threshold 0.5 is in normalized coordinates (not world units).
+    if y < 0.5:
         angle_todo = 0
-        hover_todo = -vy * 0.5
+        hover_todo = 0.2 - vy * 0.5  # 0.2 ≈ gravity feedforward → hover at vy=0
 
-    # Continuous action
-    a = np.array([hover_todo * 20 - 1, -angle_todo * 20])
+    # Note: sign is +angle_todo (not -) because KTO alpha = +Fs*arm/INERTIA
+    a = np.array([hover_todo * 5 - 1, angle_todo * 2])
     a = np.clip(a, [-1, -1], [1, 1])
 
     # Normalize to environment action space: [0,1] × [-1,1]
@@ -430,6 +438,14 @@ class LunarLanderPlayer:
 
             self.renderer.draw_lander(self.screen, x, y, theta, Fm, Fs)
 
+            # Draw lidar rays (indices 6-13 in observation)
+            lidar_readings = self.obs[6:14]
+            self.renderer.draw_lidar_rays(
+                self.screen, x, y, theta, lidar_readings,
+                max_distance=3.0, n_rays=8,
+                occluded_rays=self.occluded_rays
+            )
+
             # Draw HUD
             state_dict = {
                 'x': self.obs[0],
@@ -460,9 +476,9 @@ class LunarLanderPlayer:
                 if outcome == 'landed':
                     self.renderer.draw_banner(self.screen, self.banner_font, "LANDED!", success=True)
                 elif outcome == 'obstacle-collision':
-                    self.renderer.draw_banner(self.screen, self.banner_font, "COLLISION!", success=False)
+                    self.renderer.draw_banner(self.screen, self.banner_font, "HIT OBSTACLE!", success=False)
                 elif outcome == 'terrain-crash':
-                    self.renderer.draw_banner(self.screen, self.banner_font, "CRASHED!", success=False)
+                    self.renderer.draw_banner(self.screen, self.banner_font, "TERRAIN CRASH!", success=False)
                 elif outcome == 'out-of-bounds':
                     self.renderer.draw_banner(self.screen, self.banner_font, "OUT OF BOUNDS!", success=False)
                 else:
