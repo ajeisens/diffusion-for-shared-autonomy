@@ -69,35 +69,40 @@ def heuristic(env, s):
     # Extract state (first 6 elements)
     x, y, theta, vx, vy, omega = s[:6]
 
-    # Observations are normalized: pad_x ≈ 1.0, x/y in ~[0, 1.5]
-    pad_x = s[14]
-    dx = x - pad_x  # relative position to pad (negative = lander is left of pad)
+    # KTO physics constants (world coordinates)
+    _G = 10.0; _MASS = 1.0; _I = 0.2
+    _FMAX = 20.0; _SMAX = 5.0; _SARM = 1.0; _PAD_Y = 3.33
 
-    # Angle target: tilt toward pad using relative position
-    # In KTO physics: positive a[1] → Fs > 0 → alpha > 0 → theta increases
-    angle_targ = dx * 0.5 + vx * 1.0
-    if angle_targ > 0.4:
-        angle_targ = 0.4
-    if angle_targ < -0.4:
-        angle_targ = -0.4
-    hover_targ = 0.55 * np.abs(dx)
+    pad_x = s[14]  # = 10.0 world units
+    dx = x - pad_x  # lateral offset to pad, world units
 
-    angle_todo = (angle_targ - theta) * 0.5 - omega * 3.0
-    hover_todo = (hover_targ - y) * 0.5 - vy * 0.5
+    # ---- Angle control ----
+    # theta > 0: tilts right → main thrust has leftward component
+    # theta < 0: tilts left  → main thrust has rightward component
+    # Tilt toward pad + damp lateral velocity
+    theta_targ = np.clip(dx * 0.04 + vx * 0.02, -0.4, 0.4)
 
-    # Near ground: disable angle correction, use gravity feedforward for soft landing.
-    # Threshold 0.5 is in normalized coordinates (not world units).
-    if y < 0.5:
-        angle_todo = 0
-        hover_todo = 0.2 - vy * 0.5  # 0.2 ≈ gravity feedforward → hover at vy=0
+    # Physically-derived PD gains: omega_n=4 rad/s, critically damped
+    # alpha = Fs*arm/I  →  a[1] = alpha_des * I/(SMAX*arm)
+    alpha_des = 16.0 * (theta_targ - theta) - 8.0 * omega
+    a1 = float(np.clip(alpha_des * _I / (_SMAX * _SARM), -1.0, 1.0))
 
-    # Note: sign is +angle_todo (not -) because KTO alpha = +Fs*arm/INERTIA
-    a = np.array([hover_todo * 5 - 1, angle_todo * 2])
-    a = np.clip(a, [-1, -1], [1, 1])
+    # ---- Vertical control ----
+    # Proportional descent profile: faster high up, slow near pad
+    vy_targ = float(np.clip((_PAD_Y - y) * 0.3, -3.0, -0.2))
 
-    # Normalize to environment action space: [0,1] × [-1,1]
-    a[0] = (a[0] + 1) / 2  # Map [-1,1] → [0,1] for main engine
-    return a
+    # Gravity compensation + vy tracking
+    ay_des = 3.0 * (vy_targ - vy)
+    Fm_des = _MASS * (ay_des + _G) / max(abs(np.cos(theta)), 0.5)
+    a0 = float(np.clip(Fm_des / _FMAX, 0.0, 1.0))
+
+    # Final approach: straighten up for touchdown
+    if y < _PAD_Y + 2.0:
+        alpha_des = 16.0 * (0.0 - theta) - 8.0 * omega
+        a1 = float(np.clip(alpha_des * _I / (_SMAX * _SARM), -1.0, 1.0))
+
+    # a0 already in [0,1], a1 already in [-1,1]
+    return np.array([a0, a1])
 
 
 class ControlMode(Enum):
