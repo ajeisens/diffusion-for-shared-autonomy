@@ -43,7 +43,7 @@ class ReplayBuffer:
         # If there are files in the directory, lets read all files first
         for fname in self.directory.iterdir():
             print(f"loading {fname} from {self.directory}...")
-            self._file_cache[fname] = torch.load(fname)
+            self._file_cache[fname] = torch.load(fname, weights_only=False)
 
     def store(
         self, state: np.ndarray, action: np.ndarray, q_val: Optional[np.ndarray] = None
@@ -94,8 +94,15 @@ def main(save_video):
 
     if "LunarLander" in DCArgs.env_name:
         lvl = DCArgs.env_name.split("-")[-1]
-        modeldir = f"{DCArgs.lunar_sac_model_dir}/{lvl}"
-        datadir = f"{DCArgs.lunar_data_dir}/{lvl}/randp_{DCArgs.randp}"
+        # Use obstacle-specific expert if available
+        if "Obstacle" in DCArgs.env_name:
+            modeldir = f"{DCArgs.lunarlander_sac_model_dir}/obstacle_{lvl}"
+        else:
+            modeldir = f"{DCArgs.lunarlander_sac_model_dir}/{lvl}"
+        if "Obstacle" in DCArgs.env_name:
+            datadir = f"{DCArgs.lunarlander_data_dir}/obstacle_{lvl}/randp_{DCArgs.randp}"
+        else:
+            datadir = f"{DCArgs.lunarlander_data_dir}/{lvl}/randp_{DCArgs.randp}"
     elif "Push" in DCArgs.env_name:
         modeldir = Path(DCArgs.blockpush_sac_model_dir)
         datadir = (

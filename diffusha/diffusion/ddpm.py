@@ -352,14 +352,11 @@ class Trainer:
 
                         # LunarLander
                         lvl = envname.split("-")[-1]
-                        lvl2modeldir = {
-                            "v1": DCArgs.sac_v1_model_dir,
-                            "v2": DCArgs.sac_v2_model_dir,
-                            "v3": DCArgs.sac_v3_model_dir,
-                            "v4": DCArgs.sac_v4_model_dir,
-                            "v5": DCArgs.sac_v5_model_dir,
-                        }
-                        return initial_expert_agent(make_eval_env, lvl2modeldir[lvl])
+                        if "Obstacle" in envname:
+                            modeldir = f"{DCArgs.lunarlander_sac_model_dir}/obstacle_{lvl}"
+                        else:
+                            modeldir = f"{DCArgs.lunarlander_sac_model_dir}/{lvl}"
+                        return initial_expert_agent(make_eval_env, modeldir)
                     elif "Push" in envname:
                         modeldir = Path(Args.sac_model_dir) / Args.pushenv_model_dir
                         return initial_expert_agent(make_eval_env, modeldir)
@@ -411,6 +408,8 @@ class Trainer:
                         make_eval_env,
                         expert_agent,
                         fwd_diff_ratio=Args.fwd_diff_ratio,
+                        laggy_actor_repeat_prob=Args.laggy_actor_repeat_prob,
+                        noisy_actor_eps=Args.noisy_actor_eps,
                         num_episodes=20,
                         histogram=True,
                         actor_list=["expert", "noisy"],

@@ -87,7 +87,8 @@ def eval_assisted_actors(diffusion: DiffusionModel, make_env: Callable,
 
 
 def eval_original_actors(make_env: Callable, expert_agent, num_episodes: int = 10,
-                         save_video: bool = False, histogram: bool = False, diffusion_actor: bool = False, use_vector_env=False, num_envs=1):
+                         save_video: bool = False, histogram: bool = False, diffusion_actor: bool = False, use_vector_env=False, num_envs=1,
+                         laggy_actor_repeat_prob: float = 0.85, noisy_actor_eps: float = 0.3):
     sample_env = make_env()
     obs_space = sample_env.observation_space
     act_space = sample_env.action_space

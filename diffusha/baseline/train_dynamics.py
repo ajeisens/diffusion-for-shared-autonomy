@@ -42,28 +42,12 @@ class DynamicsDataset(Dataset):
         # Sample all transitions
         # ReplayBuffer.sample() returns single transition, so we need to sample many
         # For efficiency, we'll load chunks directly
-        self.transitions = []
-
-        replay_path = Path(replay_dir)
-        chunk_files = sorted(replay_path.glob("chunk_*.pt"))
-
-        if not chunk_files:
-            raise ValueError(f"No chunk files found in {replay_dir}")
-
-        print(f"Found {len(chunk_files)} chunk files")
-
-        for chunk_file in chunk_files:
-            chunk_data = torch.load(chunk_file)
-            # chunk_data shape: (chunk_size, state_dim + action_dim + 1)
-            # Format: [state (8), action (2), q_val (1)]
-
-            # Extract state, action pairs
-            # Note: We need consecutive transitions to compute next_state
-            # For now, we'll load all data and create transitions
-            self.transitions.append(chunk_data)
-
-        # Concatenate all chunks
-        self.transitions = np.concatenate(self.transitions, axis=0)
+        # Use already-loaded _file_cache — files are YYYYMMDD-*.pkl not chunk_*.pt
+        file_cache = self.replay_buffer._file_cache
+        if not file_cache:
+            raise ValueError(f'No replay files found in {replay_dir}')
+        print(f'Found {len(file_cache)} replay files')
+        self.transitions = np.concatenate(list(file_cache.values()), axis=0)
 
         if max_samples is not None and len(self.transitions) > max_samples:
             # Random subsample

@@ -2,11 +2,8 @@
 """
 Environment registration for obstacle-aware LunarLander.
 """
+from gymnasium.envs.registration import register
 
-import gym
-from gym.envs.registration import register
-
-# Register LunarLanderObstacle-v5
 register(
     id='LunarLanderObstacle-v5',
     entry_point='diffusha.envs.lunar_lander_obstacle:LunarLanderObstacle',

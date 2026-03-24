@@ -12,7 +12,7 @@ def get_frame(env, episode, step, obs=None, reward=None, reward_sum=None, action
     # frame: (h, w, c)
     fontScale = .3
 
-    env_name = env.unwrapped.spec.id
+    env_name = env.unwrapped.spec.name
 
     if frame is None:
         frame = np.ascontiguousarray(env.render(mode='rgb_array'), dtype=np.uint8)

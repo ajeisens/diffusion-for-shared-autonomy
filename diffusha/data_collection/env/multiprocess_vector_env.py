@@ -15,8 +15,8 @@ def worker(remote, env_fn):
     signal.signal(signal.SIGINT, signal.SIG_IGN)
 
     # Redirect stdout/stderr to files
-    sys.stdout = open(os.path.join(os.environ['RMX_OUTPUT_DIR'], str(os.getpid()) + ".out.txt"), "a")
-    sys.stderr = open(os.path.join(os.environ['RMX_OUTPUT_DIR'], str(os.getpid()) + "_error.out.txt"), "a")
+    # sys.stdout redirected (RMX_OUTPUT_DIR not set)
+    # sys.stderr redirected (RMX_OUTPUT_DIR not set)
 
     env = env_fn()
     try:

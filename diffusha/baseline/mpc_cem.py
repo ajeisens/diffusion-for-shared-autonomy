@@ -210,7 +210,7 @@ class MPCAgent(Actor):
 
         # Load dynamics model
         print(f"Loading dynamics model from {dynamics_model_path}...")
-        checkpoint = torch.load(dynamics_model_path, map_location=device)
+        checkpoint = torch.load(dynamics_model_path, map_location=device, weights_only=False)
         state_dim = checkpoint['state_dim']
         action_dim = checkpoint['action_dim']
         hidden_dim = checkpoint['hidden_dim']

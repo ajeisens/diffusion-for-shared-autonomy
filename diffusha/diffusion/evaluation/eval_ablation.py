@@ -22,7 +22,8 @@ from tqdm import tqdm
 import sys
 sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent))
 
-import gym
+import gymnasium as gym
+import diffusha.envs  # registers LunarLanderObstacle-v5
 import torch
 
 # Import actors and environment
@@ -122,14 +123,14 @@ def evaluate_condition(
     """
     # Create environment
     env = gym.make(env_name)
-    env.seed(seed)
+    # env.seed(seed) -- use reset(seed=seed) instead
 
     # Results storage
     episodes = []
 
     for ep in range(n_episodes):
         tracker = MetricsTracker()
-        obs = env.reset()
+        obs, _ = env.reset(seed=seed + ep)
         done = False
 
         # Update MPC goal if applicable
@@ -143,7 +144,12 @@ def evaluate_condition(
 
         while not done:
             action = actor.act(obs)
-            obs, reward, done, info = env.step(action)
+            step_result = env.step(action)
+            if len(step_result) == 5:
+                obs, reward, terminated, truncated, info = step_result
+                done = terminated or truncated
+            else:
+                obs, reward, done, info = step_result
             tracker.step(obs, action, reward, done, info)
 
             if tracker.steps >= 1000:  # Max episode length
@@ -210,10 +216,54 @@ def create_mpc_actor(env, model_path, horizon=10, n_samples=200, device='cuda'):
 
 
 def create_diffusha_actor(env, diffusion_path, pilot_noise=0.3, gamma=0.4, seed=0, device='cuda'):
-    """Create DiffuSHA actor (diffusion-assisted)"""
-    # TODO: Implement when diffusion model is available
-    # For now, return None
-    return None
+    """Create DiffuSHA actor using the trained diffusion model."""
+    import torch
+    from diffusha.diffusion.ddpm import DiffusionModel, DiffusionCore
+    from diffusha.config.default_args import Args
+    from diffusha.actor.assistive import DiffusionAssistedActor
+    from diffusha.actor.base import NoisyActor
+
+    obs_space = env.observation_space
+    act_space = env.action_space
+    act_size = act_space.shape[0]
+    # Diffusion model was trained on 8-dim base obs (no lidar).
+    # Strip lidar rays before passing to diffusion — base obs is first 8 dims.
+    base_obs_size = 8
+    input_size = base_obs_size + act_size  # 10
+
+    diffusion = DiffusionModel(
+        diffusion_core=DiffusionCore(),
+        num_diffusion_steps=Args.num_diffusion_steps,
+        input_size=input_size,
+        beta_schedule=Args.beta_schedule,
+        beta_min=Args.beta_min,
+        beta_max=Args.beta_max,
+        cond_dim=base_obs_size,
+    )
+
+    checkpoint = torch.load(diffusion_path, map_location=device, weights_only=False)
+    diffusion.model.load_state_dict(checkpoint["model"])
+    diffusion.model.eval()
+
+    # Noisy pilot: RandomActor as base, NoisyActor adds noise with probability pilot_noise
+    from diffusha.actor.base import RandomActor
+    base_actor = RandomActor(obs_space, act_space, seed=seed)
+    pilot = NoisyActor(obs_space, act_space, base_actor, eps=pilot_noise, preserve_norm=False, seed=seed)
+
+    from gymnasium import spaces
+    import numpy as np
+    # Wrap DiffusionAssistedActor to strip lidar (dims 8+) before diffusion inference
+    base_obs_space = spaces.Box(-np.inf, np.inf, shape=(base_obs_size,), dtype=np.float32)
+    inner_actor = DiffusionAssistedActor(base_obs_space, act_space, diffusion, pilot, fwd_diff_ratio=gamma)
+
+    class LidarStrippingActor:
+        def __init__(self, inner, base_obs_size):
+            self.inner = inner
+            self.base_obs_size = base_obs_size
+        def act(self, obs):
+            return self.inner.act(obs[:self.base_obs_size])
+
+    return LidarStrippingActor(inner_actor, base_obs_size)
 
 
 def run_ablation_study(
