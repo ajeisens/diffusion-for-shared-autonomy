@@ -345,38 +345,39 @@ class LunarLanderPlayer:
 
             obs_tensor = torch.tensor(copilot_obs).unsqueeze(0).to(device)   # (1, 6)
 
-            # Scale for positions consistent with k reverse steps
-            alpha_bar = self.diffusion_model.alphas_bar_sqrt[k] ** 2
-            noise_std = float((1.0 - alpha_bar) ** 0.5)
-
-            # Only condition position 0 on the user action when a key is actively held.
-            # If no key is pressed, self.action=[0,0] which would bias the diffusion
-            # toward coasting — instead fall back to scaled noise like positions 1..H-1.
+            # Only condition on user action when a key is actively held.
             keys = pygame.key.get_pressed()
             user_is_active = keys[pygame.K_UP] or keys[pygame.K_LEFT] or keys[pygame.K_RIGHT]
 
             if user_is_active:
-                user_act_tensor = torch.tensor(user_act).unsqueeze(0).to(device)  # (1, 2)
+                # Partial reverse chain: forward-noise user action to timestep k,
+                # scale positions 1..H-1 consistently, run k reverse steps.
+                alpha_bar = self.diffusion_model.alphas_bar_sqrt[k] ** 2
+                noise_std = float((1.0 - alpha_bar) ** 0.5)
+
+                user_act_tensor = torch.tensor(user_act).unsqueeze(0).to(device)
                 state_for_diffuse = torch.cat([obs_tensor, user_act_tensor], dim=1)
                 x_k, _ = self.diffusion_model.diffuse(state_for_diffuse.float(), torch.tensor([k]))
-                pos0_noise = x_k[:, 6:]                                            # (1, 2)
+                pos0_noise = x_k[:, 6:]                                        # (1, 2)
+                rest_noise = torch.randn(1, 2 * (horizon - 1), device=device) * noise_std
+                x_init = torch.cat([obs_tensor, pos0_noise, rest_noise], dim=1)
+
+                out, _ = self.diffusion_model.p_sample_loop(
+                    shape=x_init.shape,
+                    start_x=x_init,
+                    cond=obs_tensor,
+                    naive_cond=True,
+                    start_t=k,
+                )
             else:
-                # No user input — let diffusion run freely from pure noise on position 0
-                pos0_noise = torch.randn(1, 2, device=device) * noise_std
-
-            # Positions 1..horizon-1: same noise scale as position 0
-            rest_noise = torch.randn(1, 2 * (horizon - 1), device=device) * noise_std
-
-            # Assemble start: [obs | pos0 | scaled_rest_noise]
-            x_init = torch.cat([obs_tensor, pos0_noise, rest_noise], dim=1)
-
-            out, _ = self.diffusion_model.p_sample_loop(
-                shape=x_init.shape,
-                start_x=x_init,
-                cond=obs_tensor,
-                naive_cond=True,
-                start_t=k,
-            )
+                # No key held — run full 50-step denoising from pure Gaussian noise,
+                # identical to autonomous DIFFUSION mode.
+                shape = torch.Size([1, 6 + 2 * horizon])
+                out, _ = self.diffusion_model.p_sample_loop(
+                    shape=shape,
+                    cond=obs_tensor,
+                    naive_cond=True,
+                )
 
             # Extract and reshape → (exec_horizon, 2)
             act_block = out[0, 6 : 6 + 2 * horizon].detach().cpu().numpy()
