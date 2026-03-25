@@ -16,3 +16,4 @@ wandb/
 etc/
 demo/interactive/recorded_episodes/
 demo/interactive/demo/
+models/

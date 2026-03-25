@@ -24,6 +24,7 @@ services:
     volumes:
       - .:/app
       - ./demo/interactive/recorded_episodes:/app/demo/interactive/recorded_episodes
+      - ./models:/data/ddpm
     deploy:
       resources:
         reservations:
