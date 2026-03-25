@@ -7,8 +7,8 @@ Three control modes: Teleop (human), Heuristic (PID), and KTO (trajectory optimi
 
 Controls:
     Arrow Up: Main engine (Teleop mode)
-    Arrow Left: Rotate left (Teleop mode)
-    Arrow Right: Rotate right (Teleop mode)
+    Arrow Left: Rotate left / partial side thrust (Teleop mode)
+    Arrow Right: Rotate right / partial side thrust (Teleop mode)
     R: Reset
     Q/Escape: Quit
     1: Teleop mode (human control)
@@ -278,11 +278,11 @@ class LunarLanderPlayer:
         # Main engine: Up arrow (normalized to [0,1])
         self.action[0] = 1.0 if keys[pygame.K_UP] else 0.0
 
-        # Side engines: Left/Right arrows (normalized to [-1,1])
+        # Side engines: reduced power for finer angle control
         if keys[pygame.K_LEFT]:
-            self.action[1] = 1.0  # Positive = thrust right (rotate left)
+            self.action[1] = 0.3
         elif keys[pygame.K_RIGHT]:
-            self.action[1] = -1.0  # Negative = thrust left (rotate right)
+            self.action[1] = -0.3
         else:
             self.action[1] = 0.0
 
@@ -564,8 +564,8 @@ def main():
     print("  2 - HEURISTIC: PID controller with optional failures")
     print("  3 - KTO:       Drake trajectory optimization (requires Python 3.10-3.12)")
     print("\nControls:")
-    print("  ↑ Arrow Up:    Main engine (Teleop mode)")
-    print("  ← → Arrows:    Rotate left/right (Teleop mode)")
+    print("  ↑ Arrow Up:    Main engine (Teleop)")
+    print("  ← → Arrows:    Rotate left/right — partial thrust (Teleop)")
     print("  R:             Reset episode")
     print("  Q/Escape:      Quit")
     print("  1/2/3:         Switch control modes")

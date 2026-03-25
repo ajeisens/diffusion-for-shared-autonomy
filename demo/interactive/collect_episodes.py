@@ -22,6 +22,7 @@ import time
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
+sys.path.insert(0, str(Path(__file__).parent))  # for episode_recorder
 
 import numpy as np
 
@@ -35,7 +36,10 @@ OCCLUSION_RATES = {0: 0.0, 1: 0.10, 2: 0.30, 3: 0.50}
 
 def heuristic(env, s, failure_level: int = 0):
     """
-    Heuristic PID controller with optional lidar occlusion.
+    Physics-based heuristic PID controller with optional lidar occlusion.
+
+    Gains derived from KTO physics constants (world coordinates):
+      INERTIA=0.2, SIDE_MAX=5N, SIDE_ARM=1m, THRUST_MAX=20N, MASS=1kg, G=10m/s²
 
     Args:
         env: LunarLanderKTO instance
@@ -57,25 +61,38 @@ def heuristic(env, s, failure_level: int = 0):
                 occluded.add(i - 6)
 
     x, y, theta, vx, vy, omega = obs[:6]
-    pad_x = obs[14]
-    dx = x - pad_x
 
-    angle_targ = dx * 0.5 + vx * 1.0
-    angle_targ = np.clip(angle_targ, -0.4, 0.4)
-    hover_targ = 0.55 * np.abs(dx)
+    # KTO physics constants (world coordinates)
+    _G = 10.0; _MASS = 1.0; _I = 0.2
+    _FMAX = 20.0; _SMAX = 5.0; _SARM = 1.0; _PAD_Y = 3.33
 
-    angle_todo = (angle_targ - theta) * 0.5 - omega * 3.0
-    hover_todo = (hover_targ - y) * 0.5 - vy * 0.5
+    pad_x = obs[14]  # = 10.0 world units
+    dx = x - pad_x   # lateral offset to pad, world units
 
-    if y < 0.5:
-        angle_todo = 0
-        hover_todo = 0.2 - vy * 0.5
+    # ---- Angle control ----
+    # Tilt toward pad + damp lateral velocity (small gains: dx in world units)
+    theta_targ = np.clip(dx * 0.04 + vx * 0.02, -0.4, 0.4)
 
-    a = np.array([hover_todo * 5 - 1, angle_todo * 2])
-    a = np.clip(a, -1, 1)
-    a[0] = (a[0] + 1) / 2  # map [-1,1] → [0,1] for main engine
+    # Physically-derived PD gains: omega_n=4 rad/s, critically damped
+    # alpha = Fs*arm/I  →  a[1] = alpha_des * I/(SMAX*arm)
+    alpha_des = 16.0 * (theta_targ - theta) - 8.0 * omega
+    a1 = float(np.clip(alpha_des * _I / (_SMAX * _SARM), -1.0, 1.0))
 
-    return a, occluded
+    # ---- Vertical control ----
+    # Proportional descent profile: faster high up, slow near pad
+    vy_targ = float(np.clip((_PAD_Y - y) * 0.3, -3.0, -0.2))
+
+    # Gravity compensation + vy tracking
+    ay_des = 3.0 * (vy_targ - vy)
+    Fm_des = _MASS * (ay_des + _G) / max(abs(np.cos(theta)), 0.5)
+    a0 = float(np.clip(Fm_des / _FMAX, 0.0, 1.0))
+
+    # Final approach: straighten up for touchdown
+    if y < _PAD_Y + 2.0:
+        alpha_des = 16.0 * (0.0 - theta) - 8.0 * omega
+        a1 = float(np.clip(alpha_des * _I / (_SMAX * _SARM), -1.0, 1.0))
+
+    return np.array([a0, a1]), occluded
 
 
 def collect_heuristic_episodes(

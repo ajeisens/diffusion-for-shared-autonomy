@@ -14,3 +14,5 @@ wandb/
 .env.secret
 .output/
 etc/
+demo/interactive/recorded_episodes/
+demo/interactive/demo/

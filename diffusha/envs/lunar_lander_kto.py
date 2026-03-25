@@ -347,7 +347,11 @@ class LunarLanderKTO(gym.Env):
 
     def _make_obstacles(self, start: np.ndarray, goal: np.ndarray) -> List[Tuple[float, float, float]]:
         """Generate random circular obstacles (from poslathian)."""
-        n = self.np_random.integers(2, 4)
+        # Support both old RandomState (.randint) and new Generator (.integers)
+        if hasattr(self.np_random, 'integers'):
+            n = int(self.np_random.integers(2, 4))
+        else:
+            n = int(self.np_random.randint(2, 4))
         obs = []
 
         for _ in range(n * 10):  # Rejection sampling
