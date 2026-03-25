@@ -7,7 +7,6 @@ import numpy as np
 import torch
 from torch.optim import optimizer
 from torch.utils.data import IterableDataset, DataLoader
-from diffusha.data_collection.generate_data import ReplayBuffer
 from diffusha.data_collection.episode_dataset import EpisodeDataset
 from diffusha.config.default_args import Args
 import wandb
@@ -28,6 +27,7 @@ class ExpertTransitionDataset(IterableDataset):
         self.state_action_dim = state_dim + action_dim
         self.state_dim = state_dim
         self.action_dim = action_dim
+        from diffusha.data_collection.generate_data import ReplayBuffer
         self.replay_buffer = ReplayBuffer(directory, state_dim, action_dim)
         self.new_state_dim = new_state_dim
 
@@ -48,6 +48,7 @@ class MultiExpertTransitionDataset(IterableDataset):
         super().__init__()
         self.state_dim = state_dim
         self.action_dim = action_dim
+        from diffusha.data_collection.generate_data import ReplayBuffer
         self.replay_buffers = [
             ReplayBuffer(directory, state_dim, action_dim) for directory in directories
         ]
