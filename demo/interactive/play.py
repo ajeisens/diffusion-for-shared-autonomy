@@ -110,7 +110,8 @@ class ControlMode(Enum):
     TELEOP = 1      # Human keyboard control
     HEURISTIC = 2   # Heuristic PID controller
     KTO = 3         # Drake trajectory optimization
-    DIFFUSION = 4   # Trained diffusion model
+    DIFFUSION = 4   # Trained diffusion model (autonomous)
+    ASSISTED = 5    # Shared autonomy: keyboard nudges diffusion position 0
 
 
 # Colors (from poslathian)
@@ -199,10 +200,15 @@ class LunarLanderPlayer:
         self.diffusion_quality_cond = False
         self.diffusion_horizon = 1
         self.diffusion_exec_horizon = 1
+        self.diffusion_fwd_diff_steps = 5
 
         # Receding horizon chunk cache for DIFFUSION mode
         self._diff_chunk_cache = None   # (exec_horizon, 2) or None
         self._diff_step_in_chunk = 0
+
+        # Receding horizon chunk cache for ASSISTED mode
+        self._assisted_chunk_cache = None  # (exec_horizon, 2) or None
+        self._assisted_step_in_chunk = 0
 
         # Input state
         self.action = [0.0, 0.0]
@@ -212,7 +218,8 @@ class LunarLanderPlayer:
 
     def load_diffusion_model(self, checkpoint_path: str, name: str = None,
                              quality_cond: bool = False,
-                             horizon: int = 1, exec_horizon: int = 1):
+                             horizon: int = 1, exec_horizon: int = 1,
+                             fwd_diff_steps: int = 5):
         """Load a trained diffusion model checkpoint.
 
         Args:
@@ -254,14 +261,18 @@ class LunarLanderPlayer:
             self.diffusion_quality_cond = quality_cond
             self.diffusion_horizon = horizon
             self.diffusion_exec_horizon = exec_horizon
+            self.diffusion_fwd_diff_steps = fwd_diff_steps
 
-            # Reset chunk cache whenever a new model is loaded
+            # Reset both chunk caches whenever a new model is loaded
             self._diff_chunk_cache = None
             self._diff_step_in_chunk = 0
+            self._assisted_chunk_cache = None
+            self._assisted_step_in_chunk = 0
 
             print(f"Loaded diffusion model: {self.diffusion_model_name} "
                   f"({'quality-conditioned' if quality_cond else 'BC'}) "
-                  f"hidden={hidden_size} horizon={horizon} exec_horizon={exec_horizon}")
+                  f"hidden={hidden_size} horizon={horizon} "
+                  f"exec_horizon={exec_horizon} fwd_diff_steps={fwd_diff_steps}")
         except Exception as e:
             print(f"Failed to load diffusion model: {e}")
             self.diffusion_model = None
@@ -307,6 +318,64 @@ class LunarLanderPlayer:
         self._diff_step_in_chunk = (self._diff_step_in_chunk + 1) % self.diffusion_exec_horizon
         return [float(action[0]), float(action[1])]
 
+    def _diffusion_assisted_action(self) -> list:
+        """Shared autonomy: keyboard input conditions position 0 of the diffusion chunk.
+
+        At each re-inference boundary:
+          - Position 0:      current keyboard action, forward-noised fwd_diff_steps steps
+          - Positions 1..H-1: pure Gaussian noise
+          - Run fwd_diff_steps reverse denoising steps
+          - Cache exec_horizon actions; pop one per env step
+
+        Between boundaries the cached chunk plays out autonomously, so the user
+        only needs to provide input once every exec_horizon steps.
+        """
+        import torch
+
+        if self._assisted_chunk_cache is None or self._assisted_step_in_chunk == 0:
+            copilot_obs      = self.obs[:6].astype(np.float32)
+            user_act         = np.array(self.action, dtype=np.float32)  # current keyboard state
+            horizon          = self.diffusion_horizon
+            exec_horizon     = self.diffusion_exec_horizon
+            fwd_diff_steps   = self.diffusion_fwd_diff_steps
+            device           = self.diffusion_model.device
+
+            obs_tensor      = torch.tensor(copilot_obs).unsqueeze(0).to(device)   # (1, 6)
+            user_act_tensor = torch.tensor(user_act).unsqueeze(0).to(device)      # (1, 2)
+
+            # Forward-diffuse [obs | user_act] for fwd_diff_steps; keep only the action part
+            state_for_diffuse = torch.cat([obs_tensor, user_act_tensor], dim=1)
+            k_tensor = torch.tensor([fwd_diff_steps])
+            x_k, _ = self.diffusion_model.diffuse(state_for_diffuse.float(), k_tensor)
+            user_act_noised = x_k[:, 6:]                                           # (1, 2)
+
+            # Positions 1..horizon-1: pure noise
+            rest_noise = torch.randn(1, 2 * (horizon - 1), device=device)
+
+            # Assemble start: [obs | noised_user_act | rest_noise]
+            x_init = torch.cat([obs_tensor, user_act_noised, rest_noise], dim=1)
+
+            out, _ = self.diffusion_model.p_sample_loop(
+                shape=x_init.shape,
+                start_x=x_init,
+                cond=obs_tensor,
+                naive_cond=True,
+                start_t=fwd_diff_steps,
+            )
+
+            # Extract and reshape → (exec_horizon, 2)
+            act_block = out[0, 6 : 6 + 2 * horizon].detach().cpu().numpy()
+            act_chunk = act_block.reshape(horizon, 2)[:exec_horizon]
+            act_chunk = np.clip(act_chunk, -1.0, 1.0)
+            act_chunk[:, 0] = np.clip(act_chunk[:, 0], 0.0, 1.0)   # main_thrust ∈ [0,1]
+
+            self._assisted_chunk_cache = act_chunk
+            self._assisted_step_in_chunk = 0
+
+        action = self._assisted_chunk_cache[self._assisted_step_in_chunk]
+        self._assisted_step_in_chunk = (self._assisted_step_in_chunk + 1) % self.diffusion_exec_horizon
+        return [float(action[0]), float(action[1])]
+
     def reset(self):
         """Reset environment and start new episode"""
         # End previous episode if recording
@@ -339,9 +408,11 @@ class LunarLanderPlayer:
         self.info = {}
         self.trajectory = []
 
-        # Reset diffusion chunk cache so next step triggers a fresh inference
+        # Reset diffusion chunk caches so next step triggers a fresh inference
         self._diff_chunk_cache = None
         self._diff_step_in_chunk = 0
+        self._assisted_chunk_cache = None
+        self._assisted_step_in_chunk = 0
 
         # Reset KTO state
         self.kto_planning = False
@@ -487,6 +558,14 @@ class LunarLanderPlayer:
                 self.mode = ControlMode.TELEOP
                 action = [float(self.action[0]), float(self.action[1])]
 
+        elif self.mode == ControlMode.ASSISTED:
+            if self.diffusion_model is not None:
+                action = self._diffusion_assisted_action()
+            else:
+                print("No diffusion model loaded — falling back to teleop")
+                self.mode = ControlMode.TELEOP
+                action = [float(self.action[0]), float(self.action[1])]
+
         else:
             # Teleop: use keyboard input
             self.occluded_rays.clear()
@@ -621,7 +700,7 @@ class LunarLanderPlayer:
 
         # Draw controls reminder
         controls_text = self.font.render(
-            "↑ Thrust  ← → Rotate  R Reset  Q Quit  1 Teleop  2 Heuristic  3 KTO  F Failures  E Record",
+            "↑ Thrust  ← → Rotate  R Reset  Q Quit  1 Teleop  2 Heuristic  3 KTO  4 Diffusion  5 Assisted  F Failures  E Record",
             True, GRAY
         )
         self.screen.blit(controls_text, (10, self.window_height - 20))
@@ -662,6 +741,14 @@ class LunarLanderPlayer:
                             print(f"Switched to DIFFUSION mode ({self.diffusion_model_name})")
                         else:
                             print("No diffusion model loaded. Pass --model <checkpoint.pt>")
+                    elif event.key == pygame.K_5:
+                        if self.diffusion_model is not None:
+                            self.mode = ControlMode.ASSISTED
+                            print(f"Switched to ASSISTED mode ({self.diffusion_model_name}) "
+                                  f"fwd_diff_steps={self.diffusion_fwd_diff_steps} "
+                                  f"exec_horizon={self.diffusion_exec_horizon}")
+                        else:
+                            print("No diffusion model loaded. Pass --model <checkpoint.pt>")
                     elif event.key == pygame.K_f:
                         self.failure_level = (self.failure_level + 1) % 4
                         failure_labels = {0: "None", 1: "Low (10%)", 2: "Medium (30%)", 3: "High (50%)"}
@@ -699,6 +786,8 @@ def main():
                         help='Action chunk length the model was trained with (default: 16)')
     parser.add_argument('--exec_horizon', type=int, default=4,
                         help='Steps to execute per diffusion inference — receding horizon K (default: 4)')
+    parser.add_argument('--fwd_diff_steps', type=int, default=5,
+                        help='Forward diffusion steps applied to user action in assisted mode (default: 5)')
     args = parser.parse_args()
 
     print("=" * 70)
@@ -708,7 +797,8 @@ def main():
     print("  1 - TELEOP:    Human keyboard control")
     print("  2 - HEURISTIC: PID controller with optional failures")
     print("  3 - KTO:       Drake trajectory optimization (requires Python 3.10-3.12)")
-    print("  4 - DIFFUSION: Trained diffusion model (requires --model flag)")
+    print("  4 - DIFFUSION: Trained diffusion model autonomous (requires --model flag)")
+    print("  5 - ASSISTED:  Shared autonomy — keyboard nudges diffusion (requires --model flag)")
     print("\nControls:")
     print("  ↑ Arrow Up:    Main engine (Teleop)")
     print("  ← → Arrows:    Rotate left/right — partial thrust (Teleop)")
@@ -744,6 +834,7 @@ def main():
                 quality_cond=args.quality_cond,
                 horizon=args.horizon,
                 exec_horizon=args.exec_horizon,
+                fwd_diff_steps=args.fwd_diff_steps,
             )
             player.mode = ControlMode.DIFFUSION
 
