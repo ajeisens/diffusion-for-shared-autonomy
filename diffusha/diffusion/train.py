@@ -228,24 +228,24 @@ if __name__ == "__main__":
     from diffusha.utils import patch
 
     import argparse
-    from params_proto.hyper import Sweep
+    import json
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("sweep_file", type=str, help="sweep file")
+    parser.add_argument("sweep_file", type=str, help="sweep file (.jsonl)")
     parser.add_argument(
         "-l", "--line-number", type=int, help="line number of the sweep-file"
     )
     args = parser.parse_args()
 
     if "CUDA_VISIBLE_DEVICES" not in os.environ:
-        avail_gpus = [0]  # Adjust as you like
+        avail_gpus = [0]
         gpu_id = 0 if args.line_number is None else args.line_number % len(avail_gpus)
-        cvd = avail_gpus[gpu_id]
-        os.environ["CUDA_VISIBLE_DEVICES"] = str(cvd)
+        os.environ["CUDA_VISIBLE_DEVICES"] = str(avail_gpus[gpu_id])
 
-    # Obtain kwargs from Sweep and update hyperparameters accordingly
-    sweep = Sweep(Args).load(args.sweep_file)
-    kwargs = list(sweep)[args.line_number]
+    # Load sweep config from jsonl — one JSON dict per line
+    with open(args.sweep_file) as f:
+        runs = [json.loads(line) for line in f if line.strip()]
+    kwargs = runs[args.line_number]
     Args._update(kwargs)
 
     sweep_basename = Path(args.sweep_file).stem

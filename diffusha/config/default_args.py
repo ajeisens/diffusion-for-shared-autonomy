@@ -1,9 +1,17 @@
 #!/usr/bin/env python3
-from params_proto import ParamsProto
 import os
 proj_root = os.environ.get('RMX_CODE_DIR', '')
 
-class Args(ParamsProto):
+
+class _ParamsProtoShim:
+    """Minimal stand-in for params_proto.ParamsProto."""
+    @classmethod
+    def _update(cls, kwargs: dict):
+        for k, v in kwargs.items():
+            setattr(cls, k, v)
+
+
+class Args(_ParamsProtoShim):
     env_name = 'LunarLander-v1'
     dataset_envs = None
 
