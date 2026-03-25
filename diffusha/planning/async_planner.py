@@ -6,15 +6,16 @@ Ported from poslathian/lunar_lander/game.py:_solve_with_progress
 
 import threading
 import time
-from typing import Optional, Tuple, Dict, Callable, List
+from typing import Optional, Tuple, Dict
 
 # Import will fail if Drake not installed - caller should handle
 try:
-    from .kto_solver import solve
+    from .kto_solver import solve, STRATEGIES
     DRAKE_AVAILABLE = True
 except ImportError:
     DRAKE_AVAILABLE = False
     solve = None
+    STRATEGIES = {}
 
 
 class AsyncKTOPlanner:
@@ -28,16 +29,18 @@ class AsyncKTOPlanner:
             progress = planner.get_progress()
             # Draw progress bar with progress['phase'] and progress['frac']
 
-        result = planner.get_result()
-        times, plan, constraint_xy = result
+        times, plan, constraint_xy, warm_xy, knot_xy, control_xy = planner.get_result()
     """
 
-    def __init__(self, max_warmstart_iters: int = 0, max_obstacle_iters: int = 12):
+    def __init__(self, time_budget: float = 1.0, warmstart_budget: float = 0.33,
+                 strategy: str = "default"):
         """Initialize async planner.
 
         Args:
-            max_warmstart_iters: SNOPT iteration cap for warmstart phase (0=uncapped)
-            max_obstacle_iters: SNOPT iteration cap for obstacle phase (~0.08s per iter)
+            time_budget: Total wall-clock seconds for both solver phases.
+            warmstart_budget: Max seconds for warm-start phase.
+                Unused time is donated to the obstacle phase.
+            strategy: Solver strategy name (see kto_solver.STRATEGIES).
         """
         if not DRAKE_AVAILABLE:
             raise ImportError(
@@ -46,28 +49,27 @@ class AsyncKTOPlanner:
                 "  pip install drake>=1.30.0"
             )
 
-        self.max_warmstart_iters = max_warmstart_iters
-        self.max_obstacle_iters = max_obstacle_iters
+        self.time_budget = time_budget
+        self.warmstart_budget = warmstart_budget
+        self.strategy = strategy
 
         # Thread state
         self.thread: Optional[threading.Thread] = None
-        self.progress: Dict[str, any] = {"phase": "idle", "frac": 0.0}
-        self.result_holder: Dict[str, any] = {
+        self.progress: Dict = {"phase": "idle", "frac": 0.0}
+        self.result_holder: Dict = {
             "data": None,
             "error": None,
             "elapsed": 0.0
         }
 
-    def start_planning(self, start, goal, obstacles=(), num_control_points=20,
-                      num_dynamics_samples=40):
+    def start_planning(self, start, goal, obstacles=(), terrain=None):
         """Launch planning in background thread.
 
         Args:
             start: [x, y, theta] start pose
             goal: [x, y, theta] goal pose
             obstacles: List of (cx, cy, radius) tuples
-            num_control_points: B-spline control points (default: 20)
-            num_dynamics_samples: Constraint sample points (default: 40)
+            terrain: (txs, tys) terrain arrays for ground-avoidance, or None
         """
         if self.thread and self.thread.is_alive():
             raise RuntimeError("Planning already in progress")
@@ -77,23 +79,21 @@ class AsyncKTOPlanner:
         self.result_holder = {"data": None, "error": None, "elapsed": 0.0}
 
         def _on_progress(phase: str, frac: float):
-            """Progress callback from solver."""
             self.progress["phase"] = phase
             self.progress["frac"] = frac
 
         def _worker():
-            """Background worker thread."""
             try:
                 t0 = time.monotonic()
                 result = solve(
                     start=start,
                     goal=goal,
                     obstacles=obstacles,
-                    num_control_points=num_control_points,
-                    num_dynamics_samples=num_dynamics_samples,
+                    terrain=terrain,
                     on_progress=_on_progress,
-                    max_warmstart_iters=self.max_warmstart_iters,
-                    max_obstacle_iters=self.max_obstacle_iters,
+                    time_budget=self.time_budget,
+                    warmstart_budget=self.warmstart_budget,
+                    strategy=self.strategy,
                 )
                 self.result_holder["data"] = result
                 self.result_holder["elapsed"] = time.monotonic() - t0
@@ -107,7 +107,7 @@ class AsyncKTOPlanner:
         """Check if planning is still in progress."""
         return self.thread is not None and self.thread.is_alive()
 
-    def get_progress(self) -> Dict[str, any]:
+    def get_progress(self) -> Dict:
         """Get current planning progress.
 
         Returns:
@@ -125,17 +125,21 @@ class AsyncKTOPlanner:
         """Get planning result after completion.
 
         Returns:
-            (times, plan_dict, constraint_xy) tuple where:
+            (times, plan_dict, constraint_xy, warm_xy, knot_xy, control_xy) where:
             - times: np.ndarray of timesteps
-            - plan_dict: dict with keys ['x', 'y', 'theta', 'vx', 'vy', 'omega', 'Fm', 'Fs']
+            - plan_dict: dict with keys ['x', 'y', 'theta', 'vx', 'vy', 'omega',
+                                         'Fm', 'Fs', 'ax', 'ay', 'alpha']
             - constraint_xy: (N, 2) array of constraint enforcement points
+            - warm_xy: (300, 2) array of warm-start path positions
+            - knot_xy: (n_knots, 2) array of B-spline knot positions
+            - control_xy: (n_cp, 2) array of B-spline control point positions
 
         Raises:
-            RuntimeError: If planning still in progress
+            RuntimeError: If planning still in progress or no result available
             Exception: If solver raised an exception
         """
         if self.is_planning():
-            raise RuntimeError("Planning still in progress, call after is_planning() returns False")
+            raise RuntimeError("Planning still in progress")
 
         if self.result_holder["error"]:
             raise self.result_holder["error"]

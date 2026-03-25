@@ -13,8 +13,21 @@ INERTIA = 0.2
 SIDE_ARM = 1.0
 
 
+def _derivs(s: np.ndarray, Fm: float, Fs: float) -> np.ndarray:
+    """Compute state derivatives for [x, y, th, vx, vy, om]."""
+    th = s[2]
+    ct, st = np.cos(th), np.sin(th)
+    ax = (-Fm * st + Fs * ct) / MASS
+    ay = (Fm * ct + Fs * st) / MASS - GRAVITY
+    alpha = Fs * SIDE_ARM / INERTIA
+    return np.array([s[3], s[4], s[5], ax, ay, alpha])
+
+
 def step_physics(state: Dict[str, float], Fm: float, Fs: float, dt: float) -> Dict[str, float]:
-    """Integrate lander dynamics forward by dt seconds.
+    """Integrate lander dynamics forward by dt seconds using RK4.
+
+    RK4 is used instead of Euler because thrust direction depends on theta,
+    so Euler methods accumulate large rotational errors during open-loop replay.
 
     Args:
         state: Dictionary with keys {x, y, theta, vx, vy, omega}
@@ -25,30 +38,18 @@ def step_physics(state: Dict[str, float], Fm: float, Fs: float, dt: float) -> Di
     Returns:
         New state dictionary with updated position/velocity
     """
-    x, y, th = state["x"], state["y"], state["theta"]
-    vx, vy, om = state["vx"], state["vy"], state["omega"]
-
-    ct, st = np.cos(th), np.sin(th)
-
-    # Acceleration in world frame
-    ax = (-Fm * st + Fs * ct) / MASS
-    ay = (Fm * ct + Fs * st) / MASS - GRAVITY
-    alpha = Fs * SIDE_ARM / INERTIA
-
-    # Euler integration
-    vx += ax * dt
-    vy += ay * dt
-    om += alpha * dt
-
-    x += vx * dt
-    y += vy * dt
-    th += om * dt
-
-    return dict(x=x, y=y, theta=th, vx=vx, vy=vy, omega=om)
+    s = np.array([state["x"], state["y"], state["theta"],
+                  state["vx"], state["vy"], state["omega"]])
+    k1 = _derivs(s, Fm, Fs)
+    k2 = _derivs(s + 0.5 * dt * k1, Fm, Fs)
+    k3 = _derivs(s + 0.5 * dt * k2, Fm, Fs)
+    k4 = _derivs(s + dt * k3, Fm, Fs)
+    s += (dt / 6.0) * (k1 + 2 * k2 + 2 * k3 + k4)
+    return dict(x=s[0], y=s[1], theta=s[2], vx=s[3], vy=s[4], omega=s[5])
 
 
 def compute_inverse_dynamics(state: Dict[str, float],
-                            acc: np.ndarray) -> tuple[float, float]:
+                             acc: np.ndarray) -> tuple[float, float]:
     """Compute required thrusts to achieve desired acceleration.
 
     Given a state and desired acceleration [ax, ay, alpha], compute

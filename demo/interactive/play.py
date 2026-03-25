@@ -110,6 +110,7 @@ class ControlMode(Enum):
     TELEOP = 1      # Human keyboard control
     HEURISTIC = 2   # Heuristic PID controller
     KTO = 3         # Drake trajectory optimization
+    DIFFUSION = 4   # Trained diffusion model
 
 
 # Colors (from poslathian)
@@ -168,7 +169,7 @@ class LunarLanderPlayer:
 
         # Planner only available if Drake is installed
         if self.kto_available:
-            self.planner = AsyncKTOPlanner(max_warmstart_iters=0, max_obstacle_iters=12)
+            self.planner = AsyncKTOPlanner(time_budget=1.0, warmstart_budget=0.33)
         else:
             self.planner = None
             print("KTO mode unavailable (Drake not installed or Python version incompatible)")
@@ -192,11 +193,73 @@ class LunarLanderPlayer:
             self.recorder = None
             self.recording_enabled = False
 
+        # Diffusion model (loaded externally via load_diffusion_model)
+        self.diffusion_model = None
+        self.diffusion_model_name = 'none'
+        self.diffusion_quality_cond = False
+
         # Input state
         self.action = [0.0, 0.0]
 
         # Rendering
         self.trajectory = []
+
+    def load_diffusion_model(self, checkpoint_path: str, name: str = None, quality_cond: bool = False):
+        """Load a trained diffusion model checkpoint."""
+        try:
+            from diffusha.diffusion.ddpm import DiffusionModel, DiffusionCore
+            from diffusha.config.default_args import Args
+            import torch
+
+            quality_dim = 1 if quality_cond else 0
+            input_size = 6 + quality_dim + 2   # copilot_obs + (quality) + action
+            cond_dim = 6 + quality_dim
+
+            diffusion = DiffusionModel(
+                diffusion_core=DiffusionCore(),
+                num_diffusion_steps=Args.num_diffusion_steps,
+                input_size=input_size,
+                beta_schedule=Args.beta_schedule,
+                beta_min=Args.beta_min,
+                beta_max=Args.beta_max,
+                cond_dim=cond_dim,
+            )
+            ckpt = torch.load(checkpoint_path, map_location=diffusion.device, weights_only=False)
+            diffusion.model.load_state_dict(ckpt['ema'] if 'ema' in ckpt else ckpt['model'])
+            diffusion.model.eval()
+
+            self.diffusion_model = diffusion
+            self.diffusion_model_name = name or checkpoint_path.split('/')[-2]
+            self.diffusion_quality_cond = quality_cond
+            print(f"Loaded diffusion model: {self.diffusion_model_name} "
+                  f"({'quality-conditioned' if quality_cond else 'BC'})")
+        except Exception as e:
+            print(f"Failed to load diffusion model: {e}")
+            self.diffusion_model = None
+
+    def _diffusion_action(self) -> list:
+        """Sample action from the loaded diffusion model."""
+        import torch
+        obs = self.obs
+        copilot_obs = obs[:6].astype(np.float32)
+        quality_cond = self.diffusion_quality_cond
+
+        if quality_cond:
+            cond = np.concatenate([copilot_obs, [1.0]])
+        else:
+            cond = copilot_obs
+
+        cond_tensor = torch.tensor(cond).unsqueeze(0)  # (1, cond_dim)
+        input_size = 6 + (1 if quality_cond else 0) + 2
+        shape = torch.Size([1, input_size])
+
+        x, _ = self.diffusion_model.p_sample_loop(shape, cond=cond_tensor, naive_cond=True)
+        cond_dim = 6 + (1 if quality_cond else 0)
+        action = x[0, cond_dim:].detach().cpu().numpy()
+        action = np.clip(action, -1.0, 1.0)
+        action[0] = float(np.clip(action[0], 0.0, 1.0))
+        action[1] = float(action[1])
+        return [action[0], action[1]]
 
     def reset(self):
         """Reset environment and start new episode"""
@@ -267,8 +330,6 @@ class LunarLanderPlayer:
             start=start,
             goal=goal,
             obstacles=obstacles,
-            num_control_points=20,
-            num_dynamics_samples=40
         )
 
     def handle_input(self):
@@ -299,7 +360,8 @@ class LunarLanderPlayer:
             else:
                 # Planning complete, retrieve result
                 try:
-                    self.kto_plan_times, self.kto_plan, self.kto_constraint_xy = self.planner.get_result()
+                    (self.kto_plan_times, self.kto_plan, self.kto_constraint_xy,
+                     _warm_xy, _knot_xy, _control_xy) = self.planner.get_result()
                     self.kto_solve_time = self.planner.get_solve_time()
                     self.kto_planning = False
                     print(f"KTO planning complete: {self.kto_solve_time:.2f}s, "
@@ -341,26 +403,39 @@ class LunarLanderPlayer:
             if self.mode == ControlMode.KTO and self.kto_plan is not None:
                 # Execute KTO plan
                 if self.time < self.kto_plan_times[-1]:
-                    # Interpolate planned thrusts
                     idx = np.searchsorted(self.kto_plan_times, self.time, side='right') - 1
-                    idx = np.clip(idx, 0, len(self.kto_plan_times) - 1)
+                    idx = int(np.clip(idx, 0, len(self.kto_plan_times) - 1))
 
-                    # KTO plan has absolute thrusts, need to normalize
-                    # Fm ∈ [0, THRUST_MAX], Fs ∈ [-SIDE_MAX, SIDE_MAX]
-                    from diffusha.planning.physics_kto import MASS, GRAVITY
+                    from diffusha.planning.physics_kto import (
+                        MASS, GRAVITY, INERTIA, SIDE_ARM)
                     THRUST_MAX = 2.0 * MASS * GRAVITY
                     SIDE_MAX = 0.5 * MASS * GRAVITY
 
-                    Fm_norm = self.kto_plan['Fm'][idx] / THRUST_MAX  # → [0, 1]
-                    Fs_norm = self.kto_plan['Fs'][idx] / SIDE_MAX    # → [-1, 1]
+                    # Acceleration replay: recompute thrusts from planned
+                    # world-frame accelerations at current theta.
+                    ax_p = self.kto_plan['ax'][idx]
+                    ay_p = self.kto_plan['ay'][idx]
+                    alpha_p = self.kto_plan['alpha'][idx]
+                    theta = self.obs[2]
+                    ct, st = np.cos(theta), np.sin(theta)
+                    Fm = MASS * (-ax_p * st + (ay_p + GRAVITY) * ct)
+                    Fs = alpha_p * INERTIA / SIDE_ARM
 
-                    action = [float(np.clip(Fm_norm, 0, 1)),
-                             float(np.clip(Fs_norm, -1, 1))]
+                    action = [float(np.clip(Fm / THRUST_MAX, 0, 1)),
+                              float(np.clip(Fs / SIDE_MAX, -1, 1))]
                 else:
                     # Plan complete, coast
                     action = [0.0, 0.0]
             else:
                 action = [0.0, 0.0]
+
+        elif self.mode == ControlMode.DIFFUSION:
+            if self.diffusion_model is not None:
+                action = self._diffusion_action()
+            else:
+                print("No diffusion model loaded — falling back to teleop")
+                self.mode = ControlMode.TELEOP
+                action = [float(self.action[0]), float(self.action[1])]
 
         else:
             # Teleop: use keyboard input
@@ -531,6 +606,12 @@ class LunarLanderPlayer:
                             print("Switched to KTO mode")
                         else:
                             print("KTO mode unavailable (Drake not installed)")
+                    elif event.key == pygame.K_4:
+                        if self.diffusion_model is not None:
+                            self.mode = ControlMode.DIFFUSION
+                            print(f"Switched to DIFFUSION mode ({self.diffusion_model_name})")
+                        else:
+                            print("No diffusion model loaded. Pass --model <checkpoint.pt>")
                     elif event.key == pygame.K_f:
                         self.failure_level = (self.failure_level + 1) % 4
                         failure_labels = {0: "None", 1: "Low (10%)", 2: "Medium (30%)", 3: "High (50%)"}
@@ -556,13 +637,24 @@ class LunarLanderPlayer:
 
 def main():
     """Entry point"""
+    import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--model', type=str, default=None,
+                        help='Path to diffusion model checkpoint (.pt)')
+    parser.add_argument('--model_name', type=str, default=None,
+                        help='Display name for the model (default: inferred from path)')
+    parser.add_argument('--quality_cond', action='store_true',
+                        help='Load as quality-conditioned (collision-conditioned) model')
+    args = parser.parse_args()
+
     print("=" * 70)
-    print("LUNAR LANDER - KTO + HEURISTIC + TELEOP")
+    print("LUNAR LANDER - KTO + HEURISTIC + TELEOP + DIFFUSION")
     print("=" * 70)
     print("\nControl Modes:")
     print("  1 - TELEOP:    Human keyboard control")
     print("  2 - HEURISTIC: PID controller with optional failures")
     print("  3 - KTO:       Drake trajectory optimization (requires Python 3.10-3.12)")
+    print("  4 - DIFFUSION: Trained diffusion model (requires --model flag)")
     print("\nControls:")
     print("  ↑ Arrow Up:    Main engine (Teleop)")
     print("  ← → Arrows:    Rotate left/right — partial thrust (Teleop)")
@@ -590,6 +682,12 @@ def main():
         print("DEBUG: Creating player...")
         player = LunarLanderPlayer()
         print("DEBUG: Player created successfully")
+
+        if args.model:
+            player.load_diffusion_model(args.model, name=args.model_name,
+                                        quality_cond=args.quality_cond)
+            player.mode = ControlMode.DIFFUSION
+
         print("DEBUG: Calling player.run()...")
         player.run()
         print("DEBUG: player.run() returned")
