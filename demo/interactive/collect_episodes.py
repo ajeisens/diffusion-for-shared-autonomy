@@ -169,7 +169,7 @@ def collect_kto_episodes(
     """
     try:
         from diffusha.planning.async_planner import AsyncKTOPlanner
-        from diffusha.planning.physics_kto import MASS, GRAVITY
+        from diffusha.planning.physics_kto import MASS, GRAVITY, INERTIA, SIDE_ARM as _SIDE_ARM
     except ImportError as e:
         print(f"ERROR: Drake not available — cannot collect KTO episodes.\n  {e}")
         print("Install Drake in a Python 3.10-3.12 environment: pip install drake>=1.30.0")
@@ -180,7 +180,7 @@ def collect_kto_episodes(
 
     env = LunarLanderKTO()
     recorder = EpisodeRecorder(save_dir=save_dir, env_name='LunarLanderKTO-v1')
-    planner = AsyncKTOPlanner(max_warmstart_iters=0, max_obstacle_iters=12)
+    planner = AsyncKTOPlanner(time_budget=1.0, warmstart_budget=0.33)
 
     np.random.seed(seed)
 
@@ -202,13 +202,11 @@ def collect_kto_episodes(
             start=start,
             goal=goal,
             obstacles=obstacles,
-            num_control_points=20,
-            num_dynamics_samples=40,
         )
         planner.wait(timeout=plan_timeout)
 
         try:
-            plan_times, plan, constraint_xy = planner.get_result()
+            plan_times, plan, constraint_xy, warm_xy, knot_xy, control_xy = planner.get_result()
             solve_time = planner.get_solve_time()
             plan_ok = True
         except Exception as e:
@@ -221,22 +219,53 @@ def collect_kto_episodes(
         sim_time = 0.0
         prev_obs = obs
         kto_metadata = None
+        N_SUBSTEPS = 10  # RK4 sub-steps per env step for accurate plan replay
+        DT = 1.0 / 50
 
         while not done:
             if plan_ok and sim_time < plan_times[-1]:
                 # Interpolate thrust from optimized trajectory
                 idx = np.searchsorted(plan_times, sim_time, side='right') - 1
                 idx = int(np.clip(idx, 0, len(plan_times) - 1))
-                Fm_norm = float(np.clip(plan['Fm'][idx] / THRUST_MAX, 0.0, 1.0))
-                Fs_norm = float(np.clip(plan['Fs'][idx] / SIDE_MAX, -1.0, 1.0))
+                # Acceleration replay: recompute thrusts from planned world-frame
+                # accelerations using CURRENT theta so execution drift in theta
+                # doesn't deliver the wrong ax/ay.
+                ax_p = plan['ax'][idx]
+                ay_p = plan['ay'][idx]
+                alpha_p = plan['alpha'][idx]
+                theta = env.state['theta']
+                ct = np.cos(theta)
+                st = np.sin(theta)
+                Fm = MASS * (-ax_p * st + (ay_p + GRAVITY) * ct)
+                Fs = alpha_p * INERTIA / _SIDE_ARM  # torque-consistent
+                Fm_norm = float(np.clip(Fm / THRUST_MAX, 0.0, 1.0))
+                Fs_norm = float(np.clip(Fs / SIDE_MAX, -1.0, 1.0))
                 action = np.array([Fm_norm, Fs_norm], dtype=np.float32)
+                from diffusha.planning.physics_kto import step_physics
+                sub_dt = DT / N_SUBSTEPS
+                for _ in range(N_SUBSTEPS):
+                    env.state = step_physics(
+                        env.state,
+                        float(action[0]) * THRUST_MAX,
+                        float(action[1]) * SIDE_MAX,
+                        sub_dt
+                    )
+                env.episode_step += 1
+                done, outcome = env._check_done()
+                reward = env._compute_reward(outcome)
+                next_obs = env._get_obs()
+                info = {
+                    'goal': outcome if done else None,
+                    'collision': outcome == 'obstacle-collision' if done else False,
+                    'crashed': outcome in ['terrain-crash', 'hard-landing', 'out-of-bounds'] if done else False,
+                    'control_mode': 'kto',
+                }
             else:
                 # Fallback heuristic (plan expired or failed)
                 action, _ = heuristic(env, obs)
                 action = action.astype(np.float32)
-
-            next_obs, reward, done, info = env.step(action)
-            info['control_mode'] = 'kto'
+                next_obs, reward, done, info = env.step(action)
+                info['control_mode'] = 'kto'
 
             if done and plan_ok:
                 kto_metadata = {

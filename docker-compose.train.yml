@@ -37,10 +37,8 @@ services:
         --verbose
 
   # Generic training service — use -l flag to select run
-  # Run 0: teleop BC
-  # Run 1: heuristic BC
-  # Run 2: KTO BC
-  # Run 3: collision-conditioned (teleop + CFG quality label)
+  # Run 0: heuristic BC
+  # Run 1: KTO BC
   train:
     build:
       context: .
@@ -62,7 +60,5 @@ services:
     command: >
       bash -c "
         python -m diffusha.diffusion.train diffusha/config/sweep/sweep-kto-lander.jsonl -l 0 &&
-        python -m diffusha.diffusion.train diffusha/config/sweep/sweep-kto-lander.jsonl -l 1 &&
-        python -m diffusha.diffusion.train diffusha/config/sweep/sweep-kto-lander.jsonl -l 2 &&
-        python -m diffusha.diffusion.train diffusha/config/sweep/sweep-kto-lander.jsonl -l 3
+        python -m diffusha.diffusion.train diffusha/config/sweep/sweep-kto-lander.jsonl -l 1
       "

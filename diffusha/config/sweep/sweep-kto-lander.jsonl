@@ -1,0 +1,2 @@
+{"data_source": "episodes", "episode_data_dir": "./demo/interactive/recorded_episodes", "num_training_steps": 100000, "save_every": 5000, "eval_every": -1, "batch_size": 4096, "seed": 0, "episode_modes": ["heuristic"], "quality_cond": false, "cfg_dropout_prob": 0.0}
+{"data_source": "episodes", "episode_data_dir": "./demo/interactive/recorded_episodes", "num_training_steps": 100000, "save_every": 5000, "eval_every": -1, "batch_size": 4096, "seed": 0, "episode_modes": ["kto"], "quality_cond": false, "cfg_dropout_prob": 0.0}

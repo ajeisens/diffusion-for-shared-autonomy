@@ -56,7 +56,7 @@ class LunarLanderKTO(gym.Env):
         [1]: Side engine thrust, range [-1, 1] (maps to [-SIDE_MAX, SIDE_MAX])
 
     Episode Termination:
-        - Success: Landed on pad (|x - pad_x| < 2.5, slow, upright)
+        - Success: Landed on pad (|x - pad_x| < 3.0, vx<5, vy<8, theta<1 rad)
         - Crashed: Hit obstacle, terrain, or hard landing
         - Out of bounds: |x| > W or t > TIMEOUT
     """
@@ -292,9 +292,9 @@ class LunarLanderKTO(gym.Env):
             return False, None  # Still flying
 
         # Touched ground - check landing quality
-        on_pad = abs(x - self.pad_x) < 2.5
-        slow = abs(vx) < 2.0 and abs(vy) < 3.0
-        upright = abs(theta) < 0.5
+        on_pad = abs(x - self.pad_x) < 3.0
+        slow = abs(vx) < 5.0 and abs(vy) < 8.0
+        upright = abs(theta) < 1.0
 
         if on_pad and slow and upright:
             return True, 'landed'  # Success!
@@ -360,7 +360,7 @@ class LunarLanderKTO(gym.Env):
 
             cx = self.np_random.uniform(2.0, W - 2.0)
             cy = self.np_random.uniform(PAD_Y + 1.5, H - 2.0)
-            r = self.np_random.uniform(0.8, 2.0)
+            r = self.np_random.uniform(0.2, 0.7)
 
             # Don't block start or goal
             if np.hypot(cx - start[0], cy - start[1]) < r + 1.5:
