@@ -62,3 +62,31 @@ services:
     working_dir: /app/demo/interactive
 
     command: python play.py
+
+  # Diffusion-assisted play — receding horizon 16-step policy
+  diffusion:
+    profiles: ["windows"]
+    build:
+      context: ../..
+      dockerfile: demo/interactive/Dockerfile.ubuntu
+    image: lunar-lander-kto:latest
+    container_name: lunar-lander-diffusion
+
+    environment:
+      - DISPLAY=host.docker.internal:0
+      - QT_X11_NO_MITSHM=1
+
+    volumes:
+      - ../../:/app
+      - ./recorded_episodes:/app/demo/interactive/recorded_episodes
+
+    stdin_open: true
+    tty: true
+
+    working_dir: /app/demo/interactive
+
+    command: >
+      python play.py
+        --model /app/models/dummy/tdf9n8qj/step_00099999.pt
+        --horizon 16
+        --exec_horizon 4

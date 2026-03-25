@@ -197,6 +197,12 @@ class LunarLanderPlayer:
         self.diffusion_model = None
         self.diffusion_model_name = 'none'
         self.diffusion_quality_cond = False
+        self.diffusion_horizon = 1
+        self.diffusion_exec_horizon = 1
+
+        # Receding horizon chunk cache for DIFFUSION mode
+        self._diff_chunk_cache = None   # (exec_horizon, 2) or None
+        self._diff_step_in_chunk = 0
 
         # Input state
         self.action = [0.0, 0.0]
@@ -204,16 +210,31 @@ class LunarLanderPlayer:
         # Rendering
         self.trajectory = []
 
-    def load_diffusion_model(self, checkpoint_path: str, name: str = None, quality_cond: bool = False):
-        """Load a trained diffusion model checkpoint."""
+    def load_diffusion_model(self, checkpoint_path: str, name: str = None,
+                             quality_cond: bool = False,
+                             horizon: int = 1, exec_horizon: int = 1):
+        """Load a trained diffusion model checkpoint.
+
+        Args:
+            checkpoint_path: Path to .pt checkpoint.
+            name:            Display name (default: inferred from path).
+            quality_cond:    True for collision-conditioned models.
+            horizon:         Action chunk length the model was trained with.
+            exec_horizon:    Steps to execute per diffusion inference (receding horizon K).
+        """
         try:
             from diffusha.diffusion.ddpm import DiffusionModel, DiffusionCore
             from diffusha.config.default_args import Args
             import torch
 
+            # Auto-detect hidden_size from checkpoint weights
+            ckpt = torch.load(checkpoint_path, map_location='cpu', weights_only=False)
+            raw_state = ckpt.get('ema') or ckpt.get('model') or ckpt
+            hidden_size = raw_state['lin1.lin.weight'].shape[0]
+
             quality_dim = 1 if quality_cond else 0
-            input_size = 6 + quality_dim + 2   # copilot_obs + (quality) + action
-            cond_dim = 6 + quality_dim
+            input_size = 6 + quality_dim + 2 * horizon
+            cond_dim   = 6 + quality_dim
 
             diffusion = DiffusionModel(
                 diffusion_core=DiffusionCore(),
@@ -223,43 +244,68 @@ class LunarLanderPlayer:
                 beta_min=Args.beta_min,
                 beta_max=Args.beta_max,
                 cond_dim=cond_dim,
+                hidden_size=hidden_size,
             )
-            ckpt = torch.load(checkpoint_path, map_location=diffusion.device, weights_only=False)
-            diffusion.model.load_state_dict(ckpt['ema'] if 'ema' in ckpt else ckpt['model'])
+            diffusion.model.load_state_dict(raw_state)
             diffusion.model.eval()
 
             self.diffusion_model = diffusion
-            self.diffusion_model_name = name or checkpoint_path.split('/')[-2]
+            self.diffusion_model_name = name or Path(checkpoint_path).parent.name
             self.diffusion_quality_cond = quality_cond
+            self.diffusion_horizon = horizon
+            self.diffusion_exec_horizon = exec_horizon
+
+            # Reset chunk cache whenever a new model is loaded
+            self._diff_chunk_cache = None
+            self._diff_step_in_chunk = 0
+
             print(f"Loaded diffusion model: {self.diffusion_model_name} "
-                  f"({'quality-conditioned' if quality_cond else 'BC'})")
+                  f"({'quality-conditioned' if quality_cond else 'BC'}) "
+                  f"hidden={hidden_size} horizon={horizon} exec_horizon={exec_horizon}")
         except Exception as e:
             print(f"Failed to load diffusion model: {e}")
             self.diffusion_model = None
 
     def _diffusion_action(self) -> list:
-        """Sample action from the loaded diffusion model."""
+        """Sample action from the loaded diffusion model with receding horizon execution.
+
+        Re-runs inference only at chunk boundaries (every exec_horizon steps).
+        Between boundaries the pre-computed chunk is replayed, keeping the game
+        responsive even when exec_horizon > 1.
+        """
         import torch
-        obs = self.obs
-        copilot_obs = obs[:6].astype(np.float32)
-        quality_cond = self.diffusion_quality_cond
 
-        if quality_cond:
-            cond = np.concatenate([copilot_obs, [1.0]])
-        else:
-            cond = copilot_obs
+        # Re-infer at chunk boundary
+        if self._diff_chunk_cache is None or self._diff_step_in_chunk == 0:
+            copilot_obs = self.obs[:6].astype(np.float32)
+            quality_cond = self.diffusion_quality_cond
+            horizon = self.diffusion_horizon
+            exec_horizon = self.diffusion_exec_horizon
 
-        cond_tensor = torch.tensor(cond).unsqueeze(0)  # (1, cond_dim)
-        input_size = 6 + (1 if quality_cond else 0) + 2
-        shape = torch.Size([1, input_size])
+            if quality_cond:
+                cond = np.concatenate([copilot_obs, [1.0]])
+            else:
+                cond = copilot_obs
 
-        x, _ = self.diffusion_model.p_sample_loop(shape, cond=cond_tensor, naive_cond=True)
-        cond_dim = 6 + (1 if quality_cond else 0)
-        action = x[0, cond_dim:].detach().cpu().numpy()
-        action = np.clip(action, -1.0, 1.0)
-        action[0] = float(np.clip(action[0], 0.0, 1.0))
-        action[1] = float(action[1])
-        return [action[0], action[1]]
+            cond_tensor = torch.tensor(cond).unsqueeze(0)  # (1, cond_dim)
+            cond_dim = 6 + (1 if quality_cond else 0)
+            input_size = cond_dim + 2 * horizon
+            shape = torch.Size([1, input_size])
+
+            x, _ = self.diffusion_model.p_sample_loop(shape, cond=cond_tensor, naive_cond=True)
+
+            # Extract and reshape the full action block → (horizon, 2)
+            act_block = x[0, cond_dim:].detach().cpu().numpy()          # (2*horizon,)
+            act_chunk = act_block.reshape(horizon, 2)[:exec_horizon]    # (exec_horizon, 2)
+            act_chunk = np.clip(act_chunk, -1.0, 1.0)
+            act_chunk[:, 0] = np.clip(act_chunk[:, 0], 0.0, 1.0)       # main_thrust ∈ [0,1]
+
+            self._diff_chunk_cache = act_chunk
+            self._diff_step_in_chunk = 0
+
+        action = self._diff_chunk_cache[self._diff_step_in_chunk]
+        self._diff_step_in_chunk = (self._diff_step_in_chunk + 1) % self.diffusion_exec_horizon
+        return [float(action[0]), float(action[1])]
 
     def reset(self):
         """Reset environment and start new episode"""
@@ -292,6 +338,10 @@ class LunarLanderPlayer:
         self.time = 0.0
         self.info = {}
         self.trajectory = []
+
+        # Reset diffusion chunk cache so next step triggers a fresh inference
+        self._diff_chunk_cache = None
+        self._diff_step_in_chunk = 0
 
         # Reset KTO state
         self.kto_planning = False
@@ -645,6 +695,10 @@ def main():
                         help='Display name for the model (default: inferred from path)')
     parser.add_argument('--quality_cond', action='store_true',
                         help='Load as quality-conditioned (collision-conditioned) model')
+    parser.add_argument('--horizon', type=int, default=16,
+                        help='Action chunk length the model was trained with (default: 16)')
+    parser.add_argument('--exec_horizon', type=int, default=4,
+                        help='Steps to execute per diffusion inference — receding horizon K (default: 4)')
     args = parser.parse_args()
 
     print("=" * 70)
@@ -684,8 +738,13 @@ def main():
         print("DEBUG: Player created successfully")
 
         if args.model:
-            player.load_diffusion_model(args.model, name=args.model_name,
-                                        quality_cond=args.quality_cond)
+            player.load_diffusion_model(
+                args.model,
+                name=args.model_name,
+                quality_cond=args.quality_cond,
+                horizon=args.horizon,
+                exec_horizon=args.exec_horizon,
+            )
             player.mode = ControlMode.DIFFUSION
 
         print("DEBUG: Calling player.run()...")
