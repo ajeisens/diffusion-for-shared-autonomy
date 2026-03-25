@@ -7,7 +7,6 @@ import numpy as np
 import torch
 from torch.optim import optimizer
 from torch.utils.data import IterableDataset, DataLoader
-from diffusha.data_collection.env import is_lunarlander, make_env
 from diffusha.data_collection.generate_data import ReplayBuffer
 from diffusha.data_collection.episode_dataset import EpisodeDataset
 from diffusha.config.default_args import Args
@@ -160,6 +159,7 @@ def main():
         main_episodes()
         return
 
+    from diffusha.data_collection.env import is_lunarlander, make_env
     make_eval_env = lambda **kwargs: make_env(
         Args.env_name,
         test=True,
