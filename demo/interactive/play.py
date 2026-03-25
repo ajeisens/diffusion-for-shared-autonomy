@@ -337,22 +337,28 @@ class LunarLanderPlayer:
             user_act         = np.array(self.action, dtype=np.float32)  # current keyboard state
             horizon          = self.diffusion_horizon
             exec_horizon     = self.diffusion_exec_horizon
-            fwd_diff_steps   = self.diffusion_fwd_diff_steps
             device           = self.diffusion_model.device
+
+            # Clamp to valid timestep range [0, num_diffusion_steps-1]
+            max_t = self.diffusion_model.num_diffusion_steps - 1
+            k = min(self.diffusion_fwd_diff_steps, max_t)
 
             obs_tensor      = torch.tensor(copilot_obs).unsqueeze(0).to(device)   # (1, 6)
             user_act_tensor = torch.tensor(user_act).unsqueeze(0).to(device)      # (1, 2)
 
-            # Forward-diffuse [obs | user_act] for fwd_diff_steps; keep only the action part
+            # Forward-diffuse [obs | user_act] for k steps; keep only the action part
             state_for_diffuse = torch.cat([obs_tensor, user_act_tensor], dim=1)
-            k_tensor = torch.tensor([fwd_diff_steps])
+            k_tensor = torch.tensor([k])
             x_k, _ = self.diffusion_model.diffuse(state_for_diffuse.float(), k_tensor)
             user_act_noised = x_k[:, 6:]                                           # (1, 2)
 
-            # Positions 1..horizon-1: pure noise
-            rest_noise = torch.randn(1, 2 * (horizon - 1), device=device)
+            # Positions 1..horizon-1: scale noise to match timestep k so all positions
+            # are consistent with k reverse steps being able to denoise them
+            alpha_bar = self.diffusion_model.alphas_bar_sqrt[k] ** 2
+            noise_std = float((1.0 - alpha_bar) ** 0.5)
+            rest_noise = torch.randn(1, 2 * (horizon - 1), device=device) * noise_std
 
-            # Assemble start: [obs | noised_user_act | rest_noise]
+            # Assemble start: [obs | noised_user_act | scaled_rest_noise]
             x_init = torch.cat([obs_tensor, user_act_noised, rest_noise], dim=1)
 
             out, _ = self.diffusion_model.p_sample_loop(
@@ -360,7 +366,7 @@ class LunarLanderPlayer:
                 start_x=x_init,
                 cond=obs_tensor,
                 naive_cond=True,
-                start_t=fwd_diff_steps,
+                start_t=k,
             )
 
             # Extract and reshape → (exec_horizon, 2)
@@ -786,8 +792,9 @@ def main():
                         help='Action chunk length the model was trained with (default: 16)')
     parser.add_argument('--exec_horizon', type=int, default=4,
                         help='Steps to execute per diffusion inference — receding horizon K (default: 4)')
-    parser.add_argument('--fwd_diff_steps', type=int, default=5,
-                        help='Forward diffusion steps applied to user action in assisted mode (default: 5)')
+    parser.add_argument('--fwd_diff_steps', type=int, default=20,
+                        help='Forward diffusion steps applied to user action in assisted mode '
+                             '(default: 20, valid range: 1..num_diffusion_steps-1=49)')
     args = parser.parse_args()
 
     print("=" * 70)

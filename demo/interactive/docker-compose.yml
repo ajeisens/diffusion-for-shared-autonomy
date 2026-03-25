@@ -90,4 +90,4 @@ services:
         --model /app/models/dummy/tdf9n8qj/step_00099999.pt
         --horizon 16
         --exec_horizon 4
-        --fwd_diff_steps 5
+        --fwd_diff_steps 20
