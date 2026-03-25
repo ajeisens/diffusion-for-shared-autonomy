@@ -20,10 +20,12 @@ import wandb
 
 class DiffusionCore:
     def __init__(self) -> None:
-        from pfrl import utils
-        from diffusha.data_collection.config.default_args import DCArgs
-
-        utils.set_random_seed(DCArgs.seed)
+        seed = Args.seed
+        random.seed(seed)
+        np.random.seed(seed)
+        torch.manual_seed(seed)
+        if torch.cuda.is_available():
+            torch.cuda.manual_seed_all(seed)
 
     def noise_estimation_loss(
         self, diffusion: DiffusionModel, x_0: torch.Tensor, cond_dim: int = 0
