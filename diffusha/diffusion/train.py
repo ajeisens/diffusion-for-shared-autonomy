@@ -251,12 +251,13 @@ if __name__ == "__main__":
 
     sweep_basename = Path(args.sweep_file).stem
 
-    wandb.login()
+    args_config = {k: v for k, v in vars(Args).items()
+                   if not k.startswith('_') and not callable(v)}
     wandb.init(
-        # Set the project where this run will be logged
         project="diffusha",
         group=f"training-{sweep_basename}",
-        config=vars(Args),
+        config=args_config,
+        mode=os.environ.get('WANDB_MODE', 'online'),
     )
     main()
     wandb.finish()

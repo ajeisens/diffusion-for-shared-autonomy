@@ -19,6 +19,8 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.train
+    environment:
+      - WANDB_MODE=disabled
     volumes:
       - .:/app
       - ./demo/interactive/recorded_episodes:/app/demo/interactive/recorded_episodes
