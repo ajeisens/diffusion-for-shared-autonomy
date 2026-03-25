@@ -29,9 +29,9 @@ services:
               capabilities: [gpu]
     command: >
       python -m diffusha.diffusion.evaluation.eval_kto
-        --teleop_model    /data/ddpm/dummy/svw3msaq/step_00099999.pt
-        --heuristic_model /data/ddpm/dummy/yfr213ba/step_00099999.pt
-        --kto_model       /data/ddpm/dummy/ekbb5v8l/step_00099999.pt
+        --kto_model       /data/ddpm/diffusha/<run_id>/step_00099999.pt
+        --horizon 16
+        --exec_horizon 4
         --n_episodes 100
         --output /app/results_kto.json
         --verbose

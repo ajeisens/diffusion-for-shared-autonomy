@@ -32,6 +32,8 @@ base = dict(
     eval_every=-1,
     batch_size=4096,
     seed=0,
+    horizon=16,
+    fwd_diff_steps=5,
 )
 
 runs = [
