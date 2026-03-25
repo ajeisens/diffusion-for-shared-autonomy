@@ -116,23 +116,22 @@ def sample_action(
     """
     copilot_obs = obs[:COPILOT_OBS_DIM]
 
+    input_size = COPILOT_OBS_DIM + (1 if quality_cond else 0) + ACT_DIM
+    # Use batched shape (1, input_size) — p_sample adds a batch dim internally
+    shape = torch.Size([1, input_size])
+
     if quality_cond:
-        # Condition on quality=1 (no collision)
         cond_good = np.concatenate([copilot_obs, [1.0]]).astype(np.float32)
-        cond_tensor = torch.tensor(cond_good)
+        cond_tensor = torch.tensor(cond_good).unsqueeze(0)  # (1, 7)
 
         if guidance_scale != 1.0:
-            # CFG: also provide unconditional (quality=0) condition
             cond_null = np.concatenate([copilot_obs, [0.0]]).astype(np.float32)
-            uncond_tensor = torch.tensor(cond_null)
+            uncond_tensor = torch.tensor(cond_null).unsqueeze(0)  # (1, 7)
         else:
             uncond_tensor = None
     else:
-        cond_tensor = torch.tensor(copilot_obs.astype(np.float32))
+        cond_tensor = torch.tensor(copilot_obs.astype(np.float32)).unsqueeze(0)  # (1, 6)
         uncond_tensor = None
-
-    input_size = COPILOT_OBS_DIM + (1 if quality_cond else 0) + ACT_DIM
-    shape = torch.Size([input_size])
 
     x, _ = diffusion.p_sample_loop(
         shape,
@@ -142,10 +141,10 @@ def sample_action(
         naive_cond=True,
     )
 
-    # Extract action from the final dims
+    # Extract action from the final dims, squeeze batch dim
     cond_dim = COPILOT_OBS_DIM + (1 if quality_cond else 0)
-    action = x[..., cond_dim:].detach().cpu().numpy()
-    action = np.clip(action, [-1.0, -1.0], [1.0, 1.0])
+    action = x[0, cond_dim:].detach().cpu().numpy()  # (2,)
+    action = np.clip(action, -1.0, 1.0)
     action[0] = np.clip(action[0], 0.0, 1.0)  # main_thrust in [0, 1]
 
     return action.astype(np.float32)
