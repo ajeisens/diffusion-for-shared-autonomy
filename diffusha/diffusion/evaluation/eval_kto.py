@@ -58,7 +58,7 @@ def load_model(
     checkpoint_path: str,
     quality_cond: bool = False,
     horizon: int = 1,
-    hidden_size: int = 128,
+    hidden_size: Optional[int] = None,
 ) -> DiffusionModel:
     """Load a DiffusionModel from a checkpoint .pt file.
 
@@ -66,11 +66,19 @@ def load_model(
         checkpoint_path: Path to checkpoint saved by DiffusionModel.save_model().
         quality_cond: True for collision-conditioned models (9-dim input, cond_dim=7).
         horizon: Action chunk length (default 1 for backward compatibility).
-        hidden_size: Hidden layer size of the model (default 128).
+        hidden_size: Hidden layer size. If None (default), inferred automatically
+                     from the checkpoint weights.
     """
     quality_dim = 1 if quality_cond else 0
     input_size = COPILOT_OBS_DIM + quality_dim + ACT_DIM * horizon
     cond_dim = COPILOT_OBS_DIM + quality_dim
+
+    # Peek at the checkpoint to auto-detect hidden_size if not specified
+    ckpt = torch.load(checkpoint_path, map_location='cpu', weights_only=False)
+    if hidden_size is None:
+        state = ckpt.get('ema') or ckpt.get('model') or ckpt
+        hidden_size = state['lin1.lin.weight'].shape[0]
+        print(f"Auto-detected hidden_size={hidden_size} from checkpoint")
 
     diffusion = DiffusionModel(
         diffusion_core=DiffusionCore(),
@@ -83,7 +91,6 @@ def load_model(
         hidden_size=hidden_size,
     )
 
-    ckpt = torch.load(checkpoint_path, map_location=diffusion.device, weights_only=False)
     # Support both EMA and raw model weights
     if 'ema' in ckpt:
         diffusion.model.load_state_dict(ckpt['ema'])
@@ -93,7 +100,7 @@ def load_model(
 
     print(f"Loaded {'quality-conditioned' if quality_cond else 'BC'} model "
           f"from {checkpoint_path} "
-          f"(input={input_size}, cond_dim={cond_dim})")
+          f"(input={input_size}, cond_dim={cond_dim}, hidden={hidden_size})")
     return diffusion
 
 
