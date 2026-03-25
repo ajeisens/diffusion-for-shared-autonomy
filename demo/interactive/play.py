@@ -802,9 +802,9 @@ def main():
                         help='Action chunk length the model was trained with (default: 16)')
     parser.add_argument('--exec_horizon', type=int, default=4,
                         help='Steps to execute per diffusion inference — receding horizon K (default: 4)')
-    parser.add_argument('--fwd_diff_steps', type=int, default=20,
+    parser.add_argument('--fwd_diff_steps', type=int, default=30,
                         help='Forward diffusion steps applied to user action in assisted mode '
-                             '(default: 20, valid range: 1..num_diffusion_steps-1=49)')
+                             '(default: 30, valid range: 1..num_diffusion_steps-1=49)')
     args = parser.parse_args()
 
     print("=" * 70)
