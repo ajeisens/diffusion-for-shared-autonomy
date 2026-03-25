@@ -15,7 +15,10 @@ import time
 from .utils import make_beta_schedule, extract
 from .models import ConditionalModel, EMA
 from diffusha.config.default_args import Args
-import wandb
+try:
+    import wandb
+except ImportError:
+    wandb = None
 
 
 class DiffusionCore:
