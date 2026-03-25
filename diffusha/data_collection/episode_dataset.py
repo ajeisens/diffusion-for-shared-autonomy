@@ -137,7 +137,7 @@ class EpisodeDataset(IterableDataset):
         episodes = []
         for pkl_path in sorted(self.data_dir.glob("episode_*.pkl")):
             try:
-                ep = torch.load(pkl_path, map_location="cpu")
+                ep = torch.load(pkl_path, map_location="cpu", weights_only=False)
                 meta = ep.get("metadata", {})
                 mode = meta.get("mode", pkl_path.stem.rsplit("_", 1)[-1])
                 entry = {
@@ -167,7 +167,7 @@ class EpisodeDataset(IterableDataset):
     def _load_episode(self, entry: dict):
         """Load a single episode .pkl and return (observations, actions, quality_label)."""
         path = self.data_dir / entry["filename"]
-        ep = torch.load(path, map_location="cpu")
+        ep = torch.load(path, map_location="cpu", weights_only=False)
 
         observations = np.asarray(ep["observations"], dtype=np.float32)  # (T, 15)
         actions = np.asarray(ep["actions"], dtype=np.float32)              # (T, 2)
