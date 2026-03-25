@@ -10,6 +10,32 @@ services:
       - .:/app
     command: python diffusha/config/sweep/sweep-kto-lander.py
 
+  # Evaluation service — run eval_kto.py against trained checkpoints
+  eval:
+    build:
+      context: .
+      dockerfile: Dockerfile.train
+    environment:
+      - WANDB_MODE=disabled
+    volumes:
+      - .:/app
+      - ./models:/data/ddpm
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              device_ids: ['0']
+              capabilities: [gpu]
+    command: >
+      python -m diffusha.diffusion.evaluation.eval_kto
+        --teleop_model    /data/ddpm/dummy/svw3msaq/step_00099999.pt
+        --heuristic_model /data/ddpm/dummy/yfr213ba/step_00099999.pt
+        --kto_model       /data/ddpm/dummy/ekbb5v8l/step_00099999.pt
+        --n_episodes 100
+        --output /app/results_kto.json
+        --verbose
+
   # Generic training service — use -l flag to select run
   # Run 0: teleop BC
   # Run 1: heuristic BC

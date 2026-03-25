@@ -78,7 +78,7 @@ def load_model(
         cond_dim=cond_dim,
     )
 
-    ckpt = torch.load(checkpoint_path, map_location=diffusion.device)
+    ckpt = torch.load(checkpoint_path, map_location=diffusion.device, weights_only=False)
     # Support both EMA and raw model weights
     if 'ema' in ckpt:
         diffusion.model.load_state_dict(ckpt['ema'])
