@@ -61,3 +61,8 @@ class Args(_ParamsProtoShim):
     # cond_dim is automatically extended by 1 to cover the quality label.
     quality_cond: bool = False
     cfg_dropout_prob: float = 0.1       # Probability of zeroing quality label during training
+
+    # Action chunking
+    horizon: int = 16        # action chunk length
+    fwd_diff_steps: int = 5  # forward/reverse steps for assisted sampling
+    exec_horizon: int = 4    # steps to execute per diffusion inference (receding horizon K)

@@ -71,6 +71,7 @@ class EpisodeDataset(IterableDataset):
         cfg_dropout_prob: float = 0.1,
         filter_successful_only: bool = False,
         seed: Optional[int] = None,
+        horizon: int = 1,
     ) -> None:
         super().__init__()
         self.data_dir = Path(data_dir)
@@ -80,6 +81,7 @@ class EpisodeDataset(IterableDataset):
         self.cfg_dropout_prob = cfg_dropout_prob
         self.filter_successful_only = filter_successful_only
         self.seed = seed
+        self.horizon = horizon
 
         # Load episode index from metadata.json
         self._episodes = self._load_index()
@@ -102,7 +104,7 @@ class EpisodeDataset(IterableDataset):
     @property
     def sample_dim(self) -> int:
         """Dimension of each yielded sample."""
-        return self.copilot_obs_dim + (1 if self.include_quality_label else 0) + 2
+        return self.copilot_obs_dim + (1 if self.include_quality_label else 0) + 2 * self.horizon
 
     def episode_count(self) -> int:
         return len(self._episodes)
@@ -202,7 +204,19 @@ class EpisodeDataset(IterableDataset):
             t = rng.randint(0, T - 1)
 
             copilot_obs = observations[t, : self.copilot_obs_dim]  # (6,)
-            action = actions[t]                                      # (2,)
+
+            if self.horizon == 1:
+                action = actions[t]  # (2,)
+            else:
+                # Build action window of length horizon; zero-pad if near episode end
+                window = actions[t : t + self.horizon]  # (<=horizon, act_dim)
+                act_dim = actions.shape[1]
+                if len(window) < self.horizon:
+                    pad = np.zeros(
+                        (self.horizon - len(window), act_dim), dtype=np.float32
+                    )
+                    window = np.concatenate([window, pad], axis=0)  # (horizon, act_dim)
+                action = window.flatten()  # (act_dim * horizon,)
 
             if self.include_quality_label:
                 # CFG dropout: randomly zero out quality label during training

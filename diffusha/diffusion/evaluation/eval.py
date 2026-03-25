@@ -59,12 +59,13 @@ def sample(
 
 class DiffusionActor(Actor):
     def __init__(
-        self, diffusion: DiffusionModel, obs_size, act_size, naive_cond=False
+        self, diffusion: DiffusionModel, obs_size, act_size, naive_cond=False, horizon: int = 1
     ) -> None:
         self.obs_size = obs_size
         self.act_size = act_size
         self.diffusion = diffusion
         self.naive_cond = naive_cond
+        self.horizon = horizon
         # self.device = 'cuda'  # TEMP
 
     def _cond_sample(self, state: np.ndarray, run_in_batch=False):
@@ -79,9 +80,9 @@ class DiffusionActor(Actor):
 
         # Get the state shape the diffusion model should work on
         if len(state.shape) == 2:  # (batch_size, state_dim)
-            shape = (state.shape[0], self.obs_size + self.act_size)
+            shape = (state.shape[0], self.obs_size + self.act_size * self.horizon)
         elif len(state.shape) == 1:  # (state_dim, )
-            shape = self.obs_size + self.act_size
+            shape = self.obs_size + self.act_size * self.horizon
         else:
             raise ValueError(f"Unsupported shape in state: {state.shape}")
 
@@ -91,9 +92,9 @@ class DiffusionActor(Actor):
         )
         if not run_in_batch:
             out = out.squeeze()  # Remove batch dim
-            return out[self.obs_size :].cpu().numpy()
+            return out[self.obs_size : self.obs_size + self.act_size].cpu().numpy()
         else:
-            return out[..., self.obs_size :].cpu().numpy()
+            return out[..., self.obs_size : self.obs_size + self.act_size].cpu().numpy()
 
     def act(self, state):
         state = choose_obs_if_necessary(state, actor="copilot")  # Check with Luzhe!!

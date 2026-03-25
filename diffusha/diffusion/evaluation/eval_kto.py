@@ -57,15 +57,19 @@ ACT_DIM = 2           # [main_thrust, side_thrust]
 def load_model(
     checkpoint_path: str,
     quality_cond: bool = False,
+    horizon: int = 1,
+    hidden_size: int = 128,
 ) -> DiffusionModel:
     """Load a DiffusionModel from a checkpoint .pt file.
 
     Args:
         checkpoint_path: Path to checkpoint saved by DiffusionModel.save_model().
         quality_cond: True for collision-conditioned models (9-dim input, cond_dim=7).
+        horizon: Action chunk length (default 1 for backward compatibility).
+        hidden_size: Hidden layer size of the model (default 128).
     """
     quality_dim = 1 if quality_cond else 0
-    input_size = COPILOT_OBS_DIM + quality_dim + ACT_DIM
+    input_size = COPILOT_OBS_DIM + quality_dim + ACT_DIM * horizon
     cond_dim = COPILOT_OBS_DIM + quality_dim
 
     diffusion = DiffusionModel(
@@ -76,6 +80,7 @@ def load_model(
         beta_min=Args.beta_min,
         beta_max=Args.beta_max,
         cond_dim=cond_dim,
+        hidden_size=hidden_size,
     )
 
     ckpt = torch.load(checkpoint_path, map_location=diffusion.device, weights_only=False)
@@ -99,6 +104,7 @@ def sample_action(
     obs: np.ndarray,
     quality_cond: bool = False,
     guidance_scale: float = 1.0,
+    horizon: int = 1,
 ) -> np.ndarray:
     """Sample an action from the diffusion model given an observation.
 
@@ -110,13 +116,14 @@ def sample_action(
         obs:            Raw 15-dim KTO observation.
         quality_cond:   True for collision-conditioned models.
         guidance_scale: CFG blending coefficient λ (only used when quality_cond=True).
+        horizon:        Action chunk length (default 1 for backward compatibility).
 
     Returns:
         action: np.ndarray of shape (2,), [main_thrust, side_thrust].
     """
     copilot_obs = obs[:COPILOT_OBS_DIM]
 
-    input_size = COPILOT_OBS_DIM + (1 if quality_cond else 0) + ACT_DIM
+    input_size = COPILOT_OBS_DIM + (1 if quality_cond else 0) + ACT_DIM * horizon
     # Use batched shape (1, input_size) — p_sample adds a batch dim internally
     shape = torch.Size([1, input_size])
 
@@ -141,13 +148,74 @@ def sample_action(
         naive_cond=True,
     )
 
-    # Extract action from the final dims, squeeze batch dim
+    # Extract action from the first action slot, squeeze batch dim
     cond_dim = COPILOT_OBS_DIM + (1 if quality_cond else 0)
-    action = x[0, cond_dim:].detach().cpu().numpy()  # (2,)
+    action = x[0, cond_dim : cond_dim + ACT_DIM].detach().cpu().numpy()  # (2,)
     action = np.clip(action, -1.0, 1.0)
     action[0] = np.clip(action[0], 0.0, 1.0)  # main_thrust in [0, 1]
 
     return action.astype(np.float32)
+
+
+# ── Chunked action sampling ──────────────────────────────────────────────
+
+def sample_chunk(
+    diffusion: DiffusionModel,
+    obs: np.ndarray,
+    exec_horizon: int,
+    quality_cond: bool = False,
+    guidance_scale: float = 1.0,
+    horizon: int = 1,
+) -> np.ndarray:
+    """Run one full p_sample_loop and return the first exec_horizon action slots.
+
+    This is the eval-harness counterpart to assistive.py's
+    _diffusion_cond_sample_chunked — same model call, no forward-diffusion
+    conditioning (pure diffusion rollout from Gaussian noise).
+
+    Args:
+        diffusion:      Loaded DiffusionModel.
+        obs:            Raw 15-dim KTO observation.
+        exec_horizon:   Number of action steps to return (1 <= exec_horizon <= horizon).
+        quality_cond:   True for collision-conditioned models.
+        guidance_scale: CFG blending coefficient λ.
+        horizon:        Full action chunk length the model was trained with.
+
+    Returns:
+        chunk: np.ndarray of shape (exec_horizon, ACT_DIM), clipped to valid range.
+    """
+    copilot_obs = obs[:COPILOT_OBS_DIM]
+
+    input_size = COPILOT_OBS_DIM + (1 if quality_cond else 0) + ACT_DIM * horizon
+    shape = torch.Size([1, input_size])
+
+    if quality_cond:
+        cond_good = np.concatenate([copilot_obs, [1.0]]).astype(np.float32)
+        cond_tensor = torch.tensor(cond_good).unsqueeze(0)
+        if guidance_scale != 1.0:
+            cond_null = np.concatenate([copilot_obs, [0.0]]).astype(np.float32)
+            uncond_tensor = torch.tensor(cond_null).unsqueeze(0)
+        else:
+            uncond_tensor = None
+    else:
+        cond_tensor = torch.tensor(copilot_obs.astype(np.float32)).unsqueeze(0)
+        uncond_tensor = None
+
+    x, _ = diffusion.p_sample_loop(
+        shape,
+        cond=cond_tensor,
+        uncond=uncond_tensor,
+        guidance_scale=guidance_scale,
+        naive_cond=True,
+    )
+
+    cond_dim = COPILOT_OBS_DIM + (1 if quality_cond else 0)
+    act_block = x[0, cond_dim : cond_dim + ACT_DIM * horizon].detach().cpu().numpy()  # (ACT_DIM*horizon,)
+    act_chunk = act_block.reshape(horizon, ACT_DIM)[:exec_horizon]                    # (exec_horizon, ACT_DIM)
+
+    act_chunk = np.clip(act_chunk, -1.0, 1.0)
+    act_chunk[:, 0] = np.clip(act_chunk[:, 0], 0.0, 1.0)   # main_thrust in [0, 1]
+    return act_chunk.astype(np.float32)
 
 
 # ── Episode evaluation ───────────────────────────────────────────────────
@@ -159,8 +227,16 @@ def eval_model(
     quality_cond: bool = False,
     guidance_scale: float = 1.0,
     verbose: bool = False,
+    exec_horizon: int = 1,
+    horizon: int = 1,
 ) -> Dict:
     """Run n_episodes and return aggregate metrics.
+
+    Args:
+        exec_horizon: Steps to execute per diffusion inference (receding horizon K).
+                      Default 1 re-infers every step (original behaviour).
+        horizon:      Full action chunk length the model was trained with.
+                      Must match the checkpoint. Default 1 for backward compat.
 
     Returns:
         dict with keys: success_rate, collision_rate, crash_rate, timeout_rate,
@@ -175,12 +251,34 @@ def eval_model(
         obs = env.reset(seed=seed + ep)
         done = False
 
+        # Per-episode chunk state — reset naturally on each env.reset()
+        chunk_cache: Optional[np.ndarray] = None   # (exec_horizon, ACT_DIM)
+        step_in_chunk: int = 0
+
         while not done:
-            action = sample_action(
-                diffusion, obs,
-                quality_cond=quality_cond,
-                guidance_scale=guidance_scale,
-            )
+            # Re-infer at chunk boundary
+            if chunk_cache is None or step_in_chunk == 0:
+                if exec_horizon > 1:
+                    chunk_cache = sample_chunk(
+                        diffusion, obs,
+                        exec_horizon=exec_horizon,
+                        quality_cond=quality_cond,
+                        guidance_scale=guidance_scale,
+                        horizon=horizon,
+                    )
+                else:
+                    # exec_horizon == 1: original single-step path
+                    chunk_cache = sample_action(
+                        diffusion, obs,
+                        quality_cond=quality_cond,
+                        guidance_scale=guidance_scale,
+                        horizon=horizon,
+                    ).reshape(1, ACT_DIM)
+                step_in_chunk = 0
+
+            action = chunk_cache[step_in_chunk]             # (ACT_DIM,)
+            step_in_chunk = (step_in_chunk + 1) % exec_horizon
+
             obs, reward, done, info = env.step(action)
 
         goal = info.get('goal', 'timeout')
@@ -240,6 +338,10 @@ def main():
                         help="Guidance scales to sweep for the CC model")
     parser.add_argument('--output', type=str, default='results_kto.json')
     parser.add_argument('--verbose', action='store_true')
+    parser.add_argument('--exec_horizon', type=int, default=1,
+                        help="Steps to execute per diffusion inference (default 1 = re-infer every step)")
+    parser.add_argument('--horizon', type=int, default=1,
+                        help="Action chunk length the model was trained with (default 1)")
     args = parser.parse_args()
 
     results = {}
@@ -253,13 +355,15 @@ def main():
         if path is None:
             continue
         print(f"\nEvaluating {label} model ({args.n_episodes} episodes)...")
-        diffusion = load_model(path, quality_cond=False)
+        diffusion = load_model(path, quality_cond=False, horizon=args.horizon)
         result = eval_model(
             diffusion,
             n_episodes=args.n_episodes,
             seed=args.seed,
             quality_cond=False,
             verbose=args.verbose,
+            exec_horizon=args.exec_horizon,
+            horizon=args.horizon,
         )
         results[label] = result
         print_result(label, result)
@@ -268,7 +372,7 @@ def main():
     if args.cc_model is not None:
         print(f"\nEvaluating collision-conditioned model "
               f"(guidance_scales={args.guidance_scales}, {args.n_episodes} ep each)...")
-        diffusion = load_model(args.cc_model, quality_cond=True)
+        diffusion = load_model(args.cc_model, quality_cond=True, horizon=args.horizon)
         cc_results = []
         for gs in args.guidance_scales:
             print(f"  guidance_scale={gs:.1f}...")
@@ -279,6 +383,8 @@ def main():
                 quality_cond=True,
                 guidance_scale=gs,
                 verbose=args.verbose,
+                exec_horizon=args.exec_horizon,
+                horizon=args.horizon,
             )
             cc_results.append(result)
             print_result('collision_conditioned', result)

@@ -102,6 +102,7 @@ class DiffusionModel:
         beta_min: float,
         beta_max: float,
         cond_dim: int = 0,
+        hidden_size: int = 128,
     ) -> None:
         self.diffusion_core = diffusion_core
         self.cond_dim = cond_dim
@@ -126,7 +127,7 @@ class DiffusionModel:
 
         print("sigma_max", (self.one_minus_alphas_bar_sqrt / self.alphas_bar_sqrt)[-1])
 
-        self.model = ConditionalModel(num_diffusion_steps, input_size=input_size)
+        self.model = ConditionalModel(num_diffusion_steps, input_size=input_size, hidden_size=hidden_size)
         self.optimizer = optim.Adam(self.model.parameters(), lr=1e-3)
         self.num_diffusion_steps = num_diffusion_steps
         self.predict_epsilon = True
@@ -207,6 +208,7 @@ class DiffusionModel:
         naive_cond: bool = False,
         uncond: torch.Tensor | None = None,
         guidance_scale: float = 1.0,
+        start_t: int | None = None,
     ):
         """Performs conditional sampling (if cond is not None).
 
@@ -274,7 +276,8 @@ class DiffusionModel:
             x = torch.randn(shape)
 
         x_seq = []
-        for k in reversed(range(self.num_diffusion_steps)):
+        t_max = start_t if start_t is not None else self.num_diffusion_steps
+        for k in reversed(range(t_max)):
             if use_guidance:
                 # CFG: maintain two parallel states — conditional and unconditional.
                 # Both start from the same x; cond/uncond diverge only in the

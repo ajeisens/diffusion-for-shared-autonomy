@@ -108,10 +108,11 @@ def main_episodes():
     # KTO environment has fixed dimensions — no need to instantiate an env.
     copilot_obs_size = 6
     act_size = 2
+    horizon = Args.horizon
 
     # Optional quality label dim for CFG training
     quality_dim = 1 if Args.quality_cond else 0
-    input_size = copilot_obs_size + quality_dim + act_size
+    input_size = copilot_obs_size + quality_dim + act_size * horizon
     cond_dim = copilot_obs_size + quality_dim
 
     dataset = EpisodeDataset(
@@ -121,6 +122,7 @@ def main_episodes():
         include_quality_label=Args.quality_cond,
         cfg_dropout_prob=Args.cfg_dropout_prob,
         seed=Args.seed,
+        horizon=horizon,
     )
     print(f"Dataset: {dataset.episode_count()} episodes, "
           f"success={dataset.success_rate():.1%}, "
@@ -136,6 +138,7 @@ def main_episodes():
         beta_min=Args.beta_min,
         beta_max=Args.beta_max,
         cond_dim=cond_dim,
+        hidden_size=256,
     )
 
     trainer = Trainer(
