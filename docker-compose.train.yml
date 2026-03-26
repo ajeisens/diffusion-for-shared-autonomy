@@ -49,7 +49,7 @@ services:
       - WANDB_MODE=disabled
     volumes:
       - .:/app
-      - ./demo/interactive/recorded_episodes:/app/demo/interactive/recorded_episodes
+      - ./demo/interactive/recorded_episodes_poslathian:/app/demo/interactive/recorded_episodes
       - ./models:/data/ddpm
     deploy:
       resources:
