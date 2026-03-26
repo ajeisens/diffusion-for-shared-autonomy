@@ -60,5 +60,6 @@ services:
     command: >
       bash -c "
         python -m diffusha.diffusion.train diffusha/config/sweep/sweep-kto-lander.jsonl -l 0 &&
-        python -m diffusha.diffusion.train diffusha/config/sweep/sweep-kto-lander.jsonl -l 1
+        python -m diffusha.diffusion.train diffusha/config/sweep/sweep-kto-lander.jsonl -l 1 &&
+        python -m diffusha.diffusion.train diffusha/config/sweep/sweep-kto-lander.jsonl -l 2
       "

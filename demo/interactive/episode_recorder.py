@@ -51,10 +51,11 @@ class EpisodeRecorder:
         self.episodes = []
         self.stats = {
             'total_episodes': 0,
-            'teleop': {'count': 0, 'success_count': 0, 'collision_count': 0, 'total_return': 0.0, 'total_length': 0},
+            'teleop':    {'count': 0, 'success_count': 0, 'collision_count': 0, 'total_return': 0.0, 'total_length': 0},
             'heuristic': {'count': 0, 'success_count': 0, 'collision_count': 0, 'total_return': 0.0, 'total_length': 0},
-            'kto': {'count': 0, 'success_count': 0, 'collision_count': 0, 'total_return': 0.0, 'total_length': 0},
-            'mpc': {'count': 0, 'success_count': 0, 'collision_count': 0, 'total_return': 0.0, 'total_length': 0},
+            'kto':       {'count': 0, 'success_count': 0, 'collision_count': 0, 'total_return': 0.0, 'total_length': 0},
+            'mpc':       {'count': 0, 'success_count': 0, 'collision_count': 0, 'total_return': 0.0, 'total_length': 0},
+            'assisted':  {'count': 0, 'success_count': 0, 'collision_count': 0, 'total_return': 0.0, 'total_length': 0},
         }
 
         # Load existing metadata if available
@@ -78,10 +79,11 @@ class EpisodeRecorder:
         """Save metadata summary to disk"""
         try:
             # Compute statistics per mode
-            teleop_episodes = [e for e in self.episodes if e['mode'] == 'teleop']
+            teleop_episodes    = [e for e in self.episodes if e['mode'] == 'teleop']
             heuristic_episodes = [e for e in self.episodes if e['mode'] == 'heuristic']
-            kto_episodes = [e for e in self.episodes if e['mode'] == 'kto']
-            mpc_episodes = [e for e in self.episodes if e['mode'] == 'mpc']
+            kto_episodes       = [e for e in self.episodes if e['mode'] == 'kto']
+            mpc_episodes       = [e for e in self.episodes if e['mode'] == 'mpc']
+            assisted_episodes  = [e for e in self.episodes if e['mode'] == 'assisted']
 
             def compute_stats(episodes):
                 if not episodes:
@@ -107,10 +109,11 @@ class EpisodeRecorder:
                 'total_episodes': len(self.episodes),
                 'episodes': self.episodes,
                 'statistics': {
-                    'teleop': compute_stats(teleop_episodes),
+                    'teleop':    compute_stats(teleop_episodes),
                     'heuristic': compute_stats(heuristic_episodes),
-                    'kto': compute_stats(kto_episodes),
-                    'mpc': compute_stats(mpc_episodes),
+                    'kto':       compute_stats(kto_episodes),
+                    'mpc':       compute_stats(mpc_episodes),
+                    'assisted':  compute_stats(assisted_episodes),
                 }
             }
 
@@ -268,11 +271,12 @@ class EpisodeRecorder:
             'heuristic': self.stats.get('heuristic', {}),
             'kto': self.stats.get('kto', {}),
             'mpc': self.stats.get('mpc', {}),
+            'assisted': self.stats.get('assisted', {}),
         }
 
     def _compute_overall_rate(self, key: str) -> float:
         """Compute overall rate across all modes"""
-        modes = ['teleop', 'heuristic', 'kto', 'mpc']
+        modes = ['teleop', 'heuristic', 'kto', 'mpc', 'assisted']
         total_count = sum(self.stats.get(mode, {}).get('count', 0) for mode in modes)
 
         if total_count == 0:
@@ -287,7 +291,7 @@ class EpisodeRecorder:
 
     def _compute_overall_avg(self, key: str) -> float:
         """Compute overall average across all modes"""
-        modes = ['teleop', 'heuristic', 'kto', 'mpc']
+        modes = ['teleop', 'heuristic', 'kto', 'mpc', 'assisted']
         total_count = sum(self.stats.get(mode, {}).get('count', 0) for mode in modes)
 
         if total_count == 0:
@@ -316,10 +320,11 @@ class EpisodeRecorder:
         self.episodes = []
         self.stats = {
             'total_episodes': 0,
-            'teleop': {'count': 0, 'success_count': 0, 'collision_count': 0, 'total_return': 0.0, 'total_length': 0},
+            'teleop':    {'count': 0, 'success_count': 0, 'collision_count': 0, 'total_return': 0.0, 'total_length': 0},
             'heuristic': {'count': 0, 'success_count': 0, 'collision_count': 0, 'total_return': 0.0, 'total_length': 0},
-            'kto': {'count': 0, 'success_count': 0, 'collision_count': 0, 'total_return': 0.0, 'total_length': 0},
-            'mpc': {'count': 0, 'success_count': 0, 'collision_count': 0, 'total_return': 0.0, 'total_length': 0},
+            'kto':       {'count': 0, 'success_count': 0, 'collision_count': 0, 'total_return': 0.0, 'total_length': 0},
+            'mpc':       {'count': 0, 'success_count': 0, 'collision_count': 0, 'total_return': 0.0, 'total_length': 0},
+            'assisted':  {'count': 0, 'success_count': 0, 'collision_count': 0, 'total_return': 0.0, 'total_length': 0},
         }
 
         # Save empty metadata
