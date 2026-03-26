@@ -508,6 +508,9 @@ class LunarLanderPlayer:
                     self.kto_planning = False
                     print(f"KTO planning complete: {self.kto_solve_time:.2f}s, "
                           f"duration={self.kto_plan_times[-1]:.2f}s")
+                    # Return here so that any arrow keys held during the planning
+                    # wait do not immediately trigger the manual-override check.
+                    return
                 except Exception as e:
                     print(f"KTO solve failed: {e}")
                     # Fall back to teleop
@@ -851,9 +854,6 @@ class LunarLanderPlayer:
                         self.show_landing = not self.show_landing
                     elif event.key in (pygame.K_SPACE, pygame.K_RETURN):
                         self.show_landing = False
-                    elif self.show_landing:
-                        # While on landing page, mode keys dismiss it and switch mode
-                        pass
                     elif event.key == pygame.K_r:
                         self.reset()
                     elif event.key == pygame.K_1:
