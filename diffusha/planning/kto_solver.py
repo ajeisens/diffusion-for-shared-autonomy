@@ -306,10 +306,12 @@ def solve(start=None, goal=None, obstacles=(),
         opts1.SetOption(SnoptSolver.id(), "Major iterations limit", ws_limit)
         result = Solve(prog, solver_options=opts1)
     else:
-        # Time-budgeted: run in chunks until converged or budget exhausted
+        # Time-budgeted: run in chunks until converged or budget exhausted.
+        # Always attempt at least one Solve so result is never None
+        # (build time can exceed warmstart_budget on slow machines).
         ws_deadline = t_start + warmstart_budget
         result = None
-        while time.monotonic() < ws_deadline:
+        while result is None or time.monotonic() < ws_deadline:
             opts1 = SolverOptions()
             opts1.SetOption(SnoptSolver.id(), "Major iterations limit", CHUNK)
             result = Solve(prog, solver_options=opts1)
@@ -340,11 +342,12 @@ def solve(start=None, goal=None, obstacles=(),
         result2 = Solve(prog2, solver_options=opts2)
     else:
         # Time-budgeted: use all remaining time from the total budget
-        # (includes any time saved by early warm-start convergence)
+        # (includes any time saved by early warm-start convergence).
+        # Always attempt at least one Solve so result2 is never None.
         obs_deadline = t_start + time_budget
         result2 = None
         total_obs_iters = 0
-        while time.monotonic() < obs_deadline:
+        while result2 is None or time.monotonic() < obs_deadline:
             opts2 = SolverOptions()
             opts2.SetOption(SnoptSolver.id(), "Major iterations limit", CHUNK)
             result2 = Solve(prog2, solver_options=opts2)
