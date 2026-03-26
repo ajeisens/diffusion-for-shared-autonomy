@@ -87,7 +87,7 @@ services:
 
     command: >
       python play.py
-        --model /app/models/dummy/tdf9n8qj/step_00099999.pt
+        --model /app/models/dummy/u2aol5y8/step_00099999.pt
         --horizon 16
         --exec_horizon 4
         --fwd_diff_steps 30
