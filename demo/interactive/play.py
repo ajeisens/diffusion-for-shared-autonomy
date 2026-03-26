@@ -933,6 +933,8 @@ def main():
     parser.add_argument('--fwd_diff_steps', type=int, default=30,
                         help='Forward diffusion steps applied to user action in assisted mode '
                              '(default: 30, valid range: 1..num_diffusion_steps-1=49)')
+    parser.add_argument('--no-record', action='store_true',
+                        help='Start with episode recording disabled (toggle with E in-game)')
     args = parser.parse_args()
 
     print("=" * 70)
@@ -971,6 +973,10 @@ def main():
         print("DEBUG: Creating player...")
         player = LunarLanderPlayer()
         print("DEBUG: Player created successfully")
+
+        if args.no_record:
+            player.recording_enabled = False
+            print("Recording disabled (pass E to enable)")
 
         if args.model:
             player.load_diffusion_model(
