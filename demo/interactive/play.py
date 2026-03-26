@@ -140,7 +140,9 @@ class LunarLanderPlayer:
 
         self.clock = pygame.time.Clock()
         self.font = pygame.font.Font(None, 14)
+        self.medium_font = pygame.font.Font(None, 20)
         self.banner_font = pygame.font.Font(None, 36)
+        self.title_font = pygame.font.Font(None, 52)
 
         # Create KTO environment
         self.env = LunarLanderKTO()
@@ -209,6 +211,9 @@ class LunarLanderPlayer:
         # Receding horizon chunk cache for ASSISTED mode
         self._assisted_chunk_cache = None  # (exec_horizon, 2) or None
         self._assisted_step_in_chunk = 0
+
+        # Landing page state
+        self.show_landing = True
 
         # Input state
         self.action = [0.0, 0.0]
@@ -716,10 +721,115 @@ class LunarLanderPlayer:
 
         # Draw controls reminder
         controls_text = self.font.render(
-            "↑ Thrust  ← → Rotate  R Reset  Q Quit  1 Teleop  2 Heuristic  3 KTO  4 Diffusion  5 Assisted  F Failures  E Record",
+            "↑ Thrust  ← → Rotate  R Reset  Q Quit  1-5 Modes  F Failures  E Record  H Help",
             True, GRAY
         )
         self.screen.blit(controls_text, (10, self.window_height - 20))
+
+        pygame.display.flip()
+
+    def draw_landing_page(self):
+        """Render the landing / help page."""
+        self.screen.fill(SKY)
+        W, H = self.window_width, self.window_height
+        cx = W // 2
+
+        def text(surf, msg, font, color, x, y, align='left'):
+            t = font.render(msg, True, color)
+            r = t.get_rect()
+            if align == 'center':
+                r.centerx = x
+            else:
+                r.x = x
+            r.y = y
+            surf.blit(t, r)
+            return r.bottom
+
+        y = 18
+        # Title
+        text(self.screen, "LUNAR LANDER", self.title_font, YELLOW, cx, y, align='center')
+        y += 46
+        text(self.screen, "Diffusion-based Shared Autonomy Demo", self.medium_font, GRAY, cx, y, align='center')
+        y += 28
+
+        # Divider
+        pygame.draw.line(self.screen, GRAY, (20, y), (W - 20, y), 1)
+        y += 10
+
+        # Two-column layout: modes left, controls right
+        col_l = 30
+        col_r = W // 2 + 10
+        row_start = y
+
+        # --- LEFT: Modes ---
+        text(self.screen, "MODES", self.medium_font, BLUE, col_l, y)
+        y += 22
+        modes_info = [
+            ("1", "Teleop",    "keyboard control"),
+            ("2", "Heuristic", "PID auto-pilot"),
+            ("3", "KTO",       "Drake traj. optimisation"),
+            ("4", "Diffusion", "autonomous diffusion policy"),
+            ("5", "Assisted",  "shared autonomy (keys nudge diffusion)"),
+        ]
+        for key, name, desc in modes_info:
+            line = f"  {key}  {name:<12} {desc}"
+            text(self.screen, line, self.font, WHITE, col_l, y)
+            y += 15
+
+        # --- RIGHT: Controls ---
+        y2 = row_start
+        text(self.screen, "CONTROLS", self.medium_font, BLUE, col_r, y2)
+        y2 += 22
+        controls_info = [
+            ("↑",   "Main engine thrust"),
+            ("← →", "Rotate / side thrust"),
+            ("R",   "Reset episode"),
+            ("E",   "Toggle recording on/off"),
+            ("F",   "Cycle failure level (heuristic)"),
+            ("H",   "Show / hide this page"),
+            ("Q",   "Quit"),
+        ]
+        for key, desc in controls_info:
+            line = f"  {key:<5}  {desc}"
+            text(self.screen, line, self.font, WHITE, col_r, y2)
+            y2 += 15
+
+        y = max(y, y2) + 8
+        pygame.draw.line(self.screen, GRAY, (20, y), (W - 20, y), 1)
+        y += 10
+
+        # --- Model info ---
+        text(self.screen, "MODEL", self.medium_font, BLUE, col_l, y)
+        y += 22
+        if self.diffusion_model is not None:
+            model_line = (f"  {self.diffusion_model_name}   "
+                          f"horizon={self.diffusion_horizon}  "
+                          f"exec_horizon={self.diffusion_exec_horizon}  "
+                          f"fwd_diff_steps={self.diffusion_fwd_diff_steps}")
+            text(self.screen, model_line, self.font, GREEN, col_l, y)
+        else:
+            text(self.screen, "  No model loaded  (pass --model <checkpoint.pt>)", self.font, ORANGE, col_l, y)
+        y += 18
+
+        # --- Recording info ---
+        text(self.screen, "RECORDING", self.medium_font, BLUE, col_l, y)
+        y += 22
+        rec_color = GREEN if self.recording_enabled else GRAY
+        rec_label = "ON" if self.recording_enabled else "OFF"
+        if self.recorder:
+            stats = self.recorder.get_statistics()
+            n = stats.get('total_episodes', 0)
+            text(self.screen, f"  {rec_label}   {n} episodes saved", self.font, rec_color, col_l, y)
+        else:
+            text(self.screen, f"  {rec_label}   (recorder unavailable)", self.font, rec_color, col_l, y)
+        y += 18
+
+        pygame.draw.line(self.screen, GRAY, (20, y), (W - 20, y), 1)
+        y += 12
+
+        # Footer prompt
+        prompt = "SPACE / ENTER  —  play     H  —  return here"
+        text(self.screen, prompt, self.medium_font, YELLOW, cx, y, align='center')
 
         pygame.display.flip()
 
@@ -737,29 +847,41 @@ class LunarLanderPlayer:
                 elif event.type == pygame.KEYDOWN:
                     if event.key == pygame.K_q or event.key == pygame.K_ESCAPE:
                         running = False
+                    elif event.key == pygame.K_h:
+                        self.show_landing = not self.show_landing
+                    elif event.key in (pygame.K_SPACE, pygame.K_RETURN):
+                        self.show_landing = False
+                    elif self.show_landing:
+                        # While on landing page, mode keys dismiss it and switch mode
+                        pass
                     elif event.key == pygame.K_r:
                         self.reset()
                     elif event.key == pygame.K_1:
                         self.mode = ControlMode.TELEOP
+                        self.show_landing = False
                         print("Switched to TELEOP mode")
                     elif event.key == pygame.K_2:
                         self.mode = ControlMode.HEURISTIC
+                        self.show_landing = False
                         print("Switched to HEURISTIC mode")
                     elif event.key == pygame.K_3:
                         if self.kto_available:
                             self.mode = ControlMode.KTO
+                            self.show_landing = False
                             print("Switched to KTO mode")
                         else:
                             print("KTO mode unavailable (Drake not installed)")
                     elif event.key == pygame.K_4:
                         if self.diffusion_model is not None:
                             self.mode = ControlMode.DIFFUSION
+                            self.show_landing = False
                             print(f"Switched to DIFFUSION mode ({self.diffusion_model_name})")
                         else:
                             print("No diffusion model loaded. Pass --model <checkpoint.pt>")
                     elif event.key == pygame.K_5:
                         if self.diffusion_model is not None:
                             self.mode = ControlMode.ASSISTED
+                            self.show_landing = False
                             print(f"Switched to ASSISTED mode ({self.diffusion_model_name}) "
                                   f"fwd_diff_steps={self.diffusion_fwd_diff_steps} "
                                   f"exec_horizon={self.diffusion_exec_horizon}")
@@ -772,6 +894,12 @@ class LunarLanderPlayer:
                     elif event.key == pygame.K_e:
                         self.recording_enabled = not self.recording_enabled
                         print(f"Recording: {'ON' if self.recording_enabled else 'OFF'}")
+
+            # Landing page takes over rendering and pauses simulation
+            if self.show_landing:
+                self.draw_landing_page()
+                self.clock.tick(50)
+                continue
 
             # Handle input
             self.handle_input()
