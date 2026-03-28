@@ -37,8 +37,10 @@ services:
         --verbose
 
   # Generic training service — use -l flag to select run
-  # Run 0: heuristic BC
-  # Run 1: KTO BC
+  # Run 0: heuristic BC           (no latency augmentation)
+  # Run 1: KTO BC                 (no latency augmentation)
+  # Run 2: KTO BC + delay~U[0,7] (robust latency-augmented — recommended)
+  # Run 3: KTO BC + delay=7      (fixed worst-case latency stress-test)
   train:
     build:
       context: .
@@ -61,5 +63,70 @@ services:
       bash -c "
         python -m diffusha.diffusion.train diffusha/config/sweep/sweep-kto-lander.jsonl -l 0 &&
         python -m diffusha.diffusion.train diffusha/config/sweep/sweep-kto-lander.jsonl -l 1 &&
-        python -m diffusha.diffusion.train diffusha/config/sweep/sweep-kto-lander.jsonl -l 2
+        python -m diffusha.diffusion.train diffusha/config/sweep/sweep-kto-lander.jsonl -l 2 &&
+        python -m diffusha.diffusion.train diffusha/config/sweep/sweep-kto-lander.jsonl -l 3
+      "
+
+  # ── Latency experiment evaluation ──────────────────────────────────────────
+  # Evaluate the async latency sweep against a trained checkpoint.
+  # Set CHECKPOINT to the .pt file to evaluate.
+  #
+  # Async sweep, no compensation (baseline broken system):
+  #   docker compose -f docker-compose.train.yml run --rm latency-eval
+  #
+  # Override checkpoint:
+  #   CHECKPOINT=models/diffusha/<run_id>/step_00099999.pt \
+  #   docker compose -f docker-compose.train.yml run --rm latency-eval
+  latency-eval:
+    build:
+      context: .
+      dockerfile: Dockerfile.train
+    environment:
+      - WANDB_MODE=disabled
+      - CHECKPOINT=${CHECKPOINT:-models/dummy/tdf9n8qj/step_00099999.pt}
+    volumes:
+      - .:/app
+      - ./models:/data/ddpm
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              device_ids: ['0']
+              capabilities: [gpu]
+    command: >
+      bash -c "
+        python -m demo.latency.eval_latency
+          --checkpoint $$CHECKPOINT
+          --sweep --async-inference
+          -n 50
+          --out /app/results_latency_async.json
+      "
+
+  # Async sweep WITH Fix 2 chunk-plan-informed predictive compensation:
+  #   docker compose -f docker-compose.train.yml run --rm latency-eval-predictive
+  latency-eval-predictive:
+    build:
+      context: .
+      dockerfile: Dockerfile.train
+    environment:
+      - WANDB_MODE=disabled
+      - CHECKPOINT=${CHECKPOINT:-models/dummy/tdf9n8qj/step_00099999.pt}
+    volumes:
+      - .:/app
+      - ./models:/data/ddpm
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              device_ids: ['0']
+              capabilities: [gpu]
+    command: >
+      bash -c "
+        python -m demo.latency.eval_latency
+          --checkpoint $$CHECKPOINT
+          --sweep --async-inference --predictive
+          -n 50
+          --out /app/results_latency_async_predictive.json
       "
