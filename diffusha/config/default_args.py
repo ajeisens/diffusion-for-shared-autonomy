@@ -66,3 +66,11 @@ class Args(_ParamsProtoShim):
     horizon: int = 16        # action chunk length
     fwd_diff_steps: int = 5  # forward/reverse steps for assisted sampling
     exec_horizon: int = 4    # steps to execute per diffusion inference (receding horizon K)
+
+    # Latency-augmented training.
+    # At each sampled transition, the copilot observation is replaced by
+    # obs[t - delay] where delay ~ U[lander_delay_range[0], lander_delay_range[1]].
+    # The action chunk remains anchored at t, so the model learns to produce
+    # correct actions from stale observations.
+    # (0, 0) = disabled (original behaviour).
+    lander_delay_range: tuple = (0, 0)

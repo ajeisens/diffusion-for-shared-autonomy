@@ -32,7 +32,7 @@ Sampling convention (matches ExpertTransitionDataset):
 import json
 import random
 from pathlib import Path
-from typing import List, Optional, Set
+from typing import List, Optional, Set, Tuple
 
 import numpy as np
 import torch
@@ -60,6 +60,14 @@ class EpisodeDataset(IterableDataset):
                           Only used when include_quality_label=True.
         filter_successful_only: If True, only include episodes where success=True.
         seed: Random seed for reproducibility.
+        lander_delay_range: (min_delay, max_delay) in env steps.  At each sampled
+                            transition a delay is drawn uniformly from this range and
+                            applied to the copilot observation: the model receives
+                            obs[t - delay] instead of obs[t], while the action chunk
+                            remains anchored at t.  This trains the policy to produce
+                            correct actions from stale observations, mimicking the
+                            sensor latency present at deployment on a real robot.
+                            Default (0, 0) disables augmentation (original behaviour).
     """
 
     def __init__(
@@ -72,6 +80,7 @@ class EpisodeDataset(IterableDataset):
         filter_successful_only: bool = False,
         seed: Optional[int] = None,
         horizon: int = 1,
+        lander_delay_range: Tuple[int, int] = (0, 0),
     ) -> None:
         super().__init__()
         self.data_dir = Path(data_dir)
@@ -82,6 +91,7 @@ class EpisodeDataset(IterableDataset):
         self.filter_successful_only = filter_successful_only
         self.seed = seed
         self.horizon = horizon
+        self.lander_delay_range = lander_delay_range
 
         # Load episode index from metadata.json
         self._episodes = self._load_index()
@@ -92,9 +102,14 @@ class EpisodeDataset(IterableDataset):
                 f"Run collect_episodes.py or play.py to generate data."
             )
 
+        delay_str = (
+            f"delay={lander_delay_range[0]}"
+            if lander_delay_range[0] == lander_delay_range[1]
+            else f"delay~U[{lander_delay_range[0]},{lander_delay_range[1]}]"
+        )
         print(
             f"EpisodeDataset: {len(self._episodes)} episodes from {self.data_dir} "
-            f"(modes={modes or 'all'}, quality_label={include_quality_label})"
+            f"(modes={modes or 'all'}, quality_label={include_quality_label}, {delay_str})"
         )
 
     # ------------------------------------------------------------------
@@ -203,7 +218,12 @@ class EpisodeDataset(IterableDataset):
             # Sample a random transition from the episode
             t = rng.randint(0, T - 1)
 
-            copilot_obs = observations[t, : self.copilot_obs_dim]  # (6,)
+            # Latency augmentation: deliver a stale observation to the policy
+            # while keeping the action chunk anchored at the true time t.
+            # delay=0 is the original behaviour.
+            delay = rng.randint(self.lander_delay_range[0], self.lander_delay_range[1])
+            t_obs = max(0, t - delay)
+            copilot_obs = observations[t_obs, : self.copilot_obs_dim]  # (6,)
 
             if self.horizon == 1:
                 action = actions[t]  # (2,)

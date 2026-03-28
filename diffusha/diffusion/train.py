@@ -123,6 +123,7 @@ def main_episodes():
         cfg_dropout_prob=Args.cfg_dropout_prob,
         seed=Args.seed,
         horizon=horizon,
+        lander_delay_range=tuple(Args.lander_delay_range),
     )
     print(f"Dataset: {dataset.episode_count()} episodes, "
           f"success={dataset.success_rate():.1%}, "
