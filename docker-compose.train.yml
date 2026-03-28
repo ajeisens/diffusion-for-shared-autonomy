@@ -8,7 +8,6 @@ services:
       dockerfile: Dockerfile.train
     volumes:
       - .:/app
-      - ${DATA_DIR:-./demo/interactive/recorded_episodes_032526}:/app/demo/interactive/recorded_episodes:ro
     command: python diffusha/config/sweep/sweep-kto-lander.py
 
   # Evaluation service — run eval_kto.py against trained checkpoints
@@ -50,7 +49,6 @@ services:
       - WANDB_MODE=disabled
     volumes:
       - .:/app
-      - ${DATA_DIR:-./demo/interactive/recorded_episodes_032526}:/app/demo/interactive/recorded_episodes:ro
       - ./models:/data/ddpm
     deploy:
       resources:
